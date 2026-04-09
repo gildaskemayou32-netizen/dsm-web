@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Support{% endblock %}
+{% block page_icon %}🎧{% endblock %}
+{% block page_title %}Dashboard Support{% endblock %}
+{% block page_sub %}/ Gestion des messages{% endblock %}
+
+{% block content %}
+
+<!-- Compteurs -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+  {% for icon, label, count, color in [
+    ('🔴','Nouveaux',  count_new,  'var(--danger)'),
+    ('🔵','Lus',       count_read, 'var(--blue)'),
+    ('🟢','Résolus',   count_done, 'var(--success)'),
+  ] %}
+  <div class="card">
+    <div style="height:2px;background:{{ color }}"></div>
+    <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+      <span style="font-size:1.8rem">{{ icon }}</span>
+      <div>
+        <div style="font-size:.72rem;color:var(--muted2);font-family:var(--mono)">{{ label }}</div>
+        <div style="font-size:1.6rem;font-weight:700;color:{{ color }}">{{ count }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filtres -->
+<div class="card" style="margin-bottom:16px">
+  <form method="GET" style="display:flex;align-items:center;gap:12px;
+                             padding:14px 20px;flex-wrap:wrap">
+    <select name="status" class="form-control" style="height:34px;width:140px"
+            onchange="this.form.submit()">
+      <option value="">Tous les statuts</option>
+      {% for key, info in statuses.items() %}
+      <option value="{{ key }}"
+              {% if status_filter == key %}selected{% endif %}>
+        {{ info.label }}
+      </option>
+      {% endfor %}
+    </select>
+    <select name="type" class="form-control" style="height:34px;width:180px"
+            onchange="this.form.submit()">
+      <option value="">Tous les types</option>
+      {% for key, info in types.items() %}
+      <option value="{{ key }}"
+              {% if type_filter == key %}selected{% endif %}>
+        {{ info.icon }} {{ info.label }}
+      </option>
+      {% endfor %}
+    </select>
+    <a href="{{ url_for('support.admin') }}" class="btn btn-ghost"
+       style="height:34px">✕ Reset</a>
+    <span style="font-size:.78rem;color:var(--muted);margin-left:auto">
+      {{ messages|length }} message(s)
+    </span>
+  </form>
+</div>
+
+<!-- Liste messages -->
+{% if messages %}
+<div style="display:flex;flex-direction:column;gap:12px">
+  {% for m in messages %}
+  <div class="card" style="border-left:3px solid {{ m.type_info.color }}">
+    <div style="padding:16px 20px">
+
+      <!-- Header message -->
+      <div style="display:flex;align-items:flex-start;
+                  justify-content:space-between;gap:12px;margin-bottom:12px;
+                  flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:1.3rem">{{ m.type_info.icon }}</span>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:.88rem;font-weight:700;color:var(--text)">
+                {{ m.name or '(Anonyme)' }}
+              </span>
+              <span style="padding:2px 8px;border-radius:20px;font-size:.62rem;
+                           font-weight:700;background:{{ m.status_info.color }}18;
+                           color:{{ m.status_info.color }}">
+                {{ m.status_info.label }}
+              </span>
+              <span style="padding:2px 8px;border-radius:20px;font-size:.62rem;
+                           background:{{ m.type_info.color }}15;
+                           color:{{ m.type_info.color }}">
+                {{ m.type_info.label }}
+              </span>
+            </div>
+            <div style="font-size:.68rem;color:var(--muted);
+                        font-family:var(--mono);margin-top:2px">
+              {% if m.email %}{{ m.email }} · {% endif %}
+              {{ m.created_at.strftime('%d/%m/%Y à %H:%M') }}
+              {% if m.user %} · User #{{ m.user_id }}{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions rapides -->
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          {% if m.status != 'resolved' %}
+          <form method="POST"
+                action="{{ url_for('support.update_status', mid=m.id) }}"
+                style="display:inline">
+            <input type="hidden" name="status" value="resolved">
+            <button type="submit" class="btn btn-ghost btn-sm"
+                    style="color:var(--success);border-color:rgba(16,224,128,.3)">
+              ✓ Résolu
+            </button>
+          </form>
+          {% endif %}
+          {% if m.status == 'new' %}
+          <form method="POST"
+                action="{{ url_for('support.update_status', mid=m.id) }}"
+                style="display:inline">
+            <input type="hidden" name="status" value="read">
+            <button type="submit" class="btn btn-ghost btn-sm">👁 Lu</button>
+          </form>
+          {% endif %}
+          <form method="POST"
+                action="{{ url_for('support.delete_message', mid=m.id) }}"
+                style="display:inline"
+                onsubmit="return confirm('Supprimer ce message ?')">
+            <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Corps du message -->
+      <div style="background:var(--card2);border-radius:8px;padding:12px 16px;
+                  font-size:.82rem;color:var(--text);line-height:1.5;
+                  border-left:2px solid {{ m.type_info.color }}">
+        {{ m.message }}
+      </div>
+
+      <!-- Note admin + répondre -->
+      <div style="margin-top:12px">
+        <form method="POST"
+              action="{{ url_for('support.update_status', mid=m.id) }}"
+              style="display:flex;gap:8px;align-items:flex-end">
+          <input type="hidden" name="status"
+                 value="{{ m.status }}">
+          <div style="flex:1">
+            <label style="font-size:.68rem;color:var(--muted);
+                          font-family:var(--mono);display:block;margin-bottom:4px">
+              // Note interne admin
+            </label>
+            <input type="text" name="admin_note" class="form-control"
+                   style="height:32px;font-size:.78rem"
+                   placeholder="Ajouter une note interne..."
+                   value="{{ m.admin_note or '' }}">
+          </div>
+          <button type="submit" class="btn btn-ghost btn-sm"
+                  style="height:32px">💾 Sauvegarder</button>
+        </form>
+        {% if m.admin_note %}
+        <div style="margin-top:6px;font-size:.72rem;color:var(--muted2);
+                    padding:6px 10px;background:rgba(240,192,64,.06);
+                    border-radius:6px;border:1px solid rgba(240,192,64,.15)">
+          📝 Note : {{ m.admin_note }}
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card" style="text-align:center;padding:60px 20px">
+  <div style="font-size:3rem;margin-bottom:12px">📭</div>
+  <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px">
+    Aucun message
+  </div>
+  <div style="font-size:.82rem;color:var(--muted2)">
+    {% if status_filter or type_filter %}
+      Aucun message pour ces filtres.
+    {% else %}
+      Aucun message de support reçu pour l'instant.
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

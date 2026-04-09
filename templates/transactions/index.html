@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block page_icon %}🧾{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+{% block page_sub %}/ {{ total }} enregistrement(s){% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('transactions.export_excel_route', search=search, date_from=date_from, date_to=date_to, statut=statut) }}" class="btn btn-ghost">📊 Excel</a>
+<a href="{{ url_for('transactions.export_csv_route') }}" class="btn btn-ghost">📄 CSV</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Toolbar -->
+<div class="d-flex align-center justify-between mb-3" style="gap:10px;flex-wrap:wrap">
+  <div class="d-flex gap-2" style="flex-wrap:wrap">
+    <a href="{{ url_for('transactions.add') }}" class="btn btn-primary">➕ Ajouter</a>
+    <a href="{{ url_for('transactions.export_excel_route') }}" class="btn btn-ghost">📊 Export Excel</a>
+    <a href="{{ url_for('transactions.export_csv_route') }}" class="btn btn-ghost">📄 CSV</a>
+    <form method="POST" action="{{ url_for('transactions.delete_all') }}" style="display:inline"
+          onsubmit="return confirm('Supprimer TOUTES les transactions ? Action irréversible.')">
+      <button type="submit" class="btn btn-danger">🚮 Vider tout</button>
+    </form>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+  <form method="GET" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 20px">
+    <div class="d-flex align-center gap-2" style="flex:1;min-width:180px">
+      <span style="color:var(--muted)">🔍</span>
+      <input type="text" name="search" value="{{ search }}"
+             placeholder="Rechercher un client..."
+             class="form-control" style="height:34px">
+    </div>
+    <div class="d-flex align-center gap-2" style="flex-wrap:wrap">
+      <span class="text-muted text-sm">Du :</span>
+      <input type="date" name="date_from" value="{{ date_from }}"
+             class="form-control" style="height:34px;width:140px">
+      <span class="text-muted text-sm">Au :</span>
+      <input type="date" name="date_to" value="{{ date_to }}"
+             class="form-control" style="height:34px;width:140px">
+    </div>
+    <select name="statut" class="form-control" style="height:34px;width:120px">
+      <option value="">Tous</option>
+      <option value="soldé"   {% if statut=='soldé'   %}selected{% endif %}>✓ Soldé</option>
+      <option value="partiel" {% if statut=='partiel' %}selected{% endif %}>⏳ Partiel</option>
+      <option value="déficit" {% if statut=='déficit' %}selected{% endif %}>✗ Déficit</option>
+    </select>
+    <button type="submit" class="btn btn-primary" style="height:34px">Filtrer</button>
+    <a href="{{ url_for('transactions.index') }}" class="btn btn-ghost" style="height:34px">✕</a>
+    <select name="per_page" class="form-control" style="height:34px;width:80px"
+            onchange="this.form.submit()">
+      {% for n in [10,25,50,100] %}
+      <option value="{{ n }}" {% if per_page==n %}selected{% endif %}>{{ n }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Tableau -->
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px;border-bottom:1px solid var(--border)">
+    <span class="text-muted text-sm text-mono">{{ total }} enregistrement(s)</span>
+    {% set total_ben = namespace(val=0) %}
+    {% for t in transactions %}{% set total_ben.val = total_ben.val + t.benefice %}{% endfor %}
+    <span class="text-bold text-mono" style="color:{% if total_ben.val >= 0 %}var(--success){% else %}var(--danger){% endif %}">
+      Σ = {{ total_ben.val|fmt_money }} FCFA
+    </span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          {% for col, label, align in [
+            ('client','Client',''),
+            ('montant_recu','Reçu (FCFA)','r'),
+            ('transport','Transport','r'),
+            ('autres','Autres','r'),
+            ('benefice','Bénéfice','r'),
+            ('marge','Marge %','r'),
+            ('statut','Statut','c'),
+            ('date','Date','c'),
+          ] %}
+          <th class="{{ align }}">
+            <a href="?search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}&statut={{ statut }}&per_page={{ per_page }}&order_by={{ col }}&desc={{ '0' if order_by==col and desc else '1' }}">
+              {{ label }}{% if order_by == col %} {{ '↓' if desc else '↑' }}{% endif %}
+            </a>
+          </th>
+          {% endfor %}
+          <th class="c">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td>
+            <div class="client-cell">
+              <div class="avatar" style="background:{{ t.client|av_color }};color:#060c14">
+                {{ t.client|initials }}
+              </div>
+              <div>
+                <div class="client-name">{{ t.client }}</div>
+                <div class="client-id">#CLT-{{ "%04d"|format(t.id) }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="r text-blue text-mono">{{ t.montant_recu|fmt_money }}</td>
+          <td class="r text-muted2 text-mono">{{ t.transport|fmt_money }}</td>
+          <td class="r text-muted2 text-mono">{{ t.autres|fmt_money }}</td>
+          <td class="r text-mono {% if t.benefice >= 0 %}pos{% else %}neg{% endif %}">{{ t.benefice|fmt_money }}</td>
+          <td class="r text-mono" style="color:{% if t.marge >= 50 %}var(--teal){% else %}var(--warn){% endif %}">{{ t.marge }}%</td>
+          <td class="c">
+            {% if t.statut == 'soldé' %}<span class="badge badge-solde">✓ Soldé</span>
+            {% elif t.statut == 'partiel' %}<span class="badge badge-partiel">⏳ Partiel</span>
+            {% else %}<span class="badge badge-deficit">✗ Déficit</span>{% endif %}
+          </td>
+          <td class="c text-muted text-mono" style="font-size:.75rem">{{ t.date }}</td>
+          <td class="c">
+            <div class="d-flex gap-2" style="justify-content:center">
+              <a href="{{ url_for('transactions.edit', tid=t.id) }}" class="btn btn-ghost btn-sm">✏️</a>
+              <form method="POST" action="{{ url_for('transactions.delete', tid=t.id) }}"
+                    style="display:inline"
+                    onsubmit="return confirm('Supprimer « {{ t.client }} » ?')">
+                <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not transactions %}
+        <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">
+          Aucune transaction trouvée.
+          <a href="{{ url_for('transactions.add') }}" style="color:var(--gold)">➕ Ajouter →</a>
+        </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pag">
+    <span class="pag-info">
+      Affichage {{ ((page-1)*per_page)+1 if total else 0 }}–{{ [page*per_page, total]|min }} sur {{ total }}
+    </span>
+    <div class="pag-btns">
+      {% if page > 1 %}
+      <a href="?search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}&statut={{ statut }}&per_page={{ per_page }}&order_by={{ order_by }}&desc={{ '1' if desc else '0' }}&page={{ page-1 }}" class="pag-btn">←</a>
+      {% endif %}
+      {% for p in range(1, total_pages+1) %}
+        {% if p == 1 or p == total_pages or (p >= page-2 and p <= page+2) %}
+          <a href="?search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}&statut={{ statut }}&per_page={{ per_page }}&order_by={{ order_by }}&desc={{ '1' if desc else '0' }}&page={{ p }}"
+             class="pag-btn {% if p == page %}active{% endif %}">{{ p }}</a>
+        {% elif p == page-3 or p == page+3 %}
+          <span class="pag-btn dots">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if page < total_pages %}
+      <a href="?search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}&statut={{ statut }}&per_page={{ per_page }}&order_by={{ order_by }}&desc={{ '1' if desc else '0' }}&page={{ page+1 }}" class="pag-btn">→</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

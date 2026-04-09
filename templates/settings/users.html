@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Utilisateurs{% endblock %}
+{% block page_icon %}👥{% endblock %}
+{% block page_title %}Gestion des utilisateurs{% endblock %}
+{% block page_sub %}/ {{ users|length }} compte(s) enregistré(s){% endblock %}
+
+{% block content %}
+
+<!-- Tabs -->
+<div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0">
+  <a href="{{ url_for('settings.settings') }}"
+     style="padding:10px 18px;font-size:.85rem;font-weight:600;text-decoration:none;
+            border-bottom:2px solid transparent;color:var(--muted2);margin-bottom:-1px">
+    👤 Mon compte
+  </a>
+  <a href="{{ url_for('settings.users') }}"
+     style="padding:10px 18px;font-size:.85rem;font-weight:600;text-decoration:none;
+            border-bottom:2px solid var(--gold);color:var(--gold);margin-bottom:-1px">
+    👥 Utilisateurs
+  </a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:16px;max-width:1000px">
+
+  <!-- Liste utilisateurs -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">👥 Comptes actifs</div>
+      <span class="badge badge-blue">{{ users|length }}</span>
+    </div>
+
+    {% for u in users %}
+    <div style="display:flex;align-items:center;gap:14px;
+                padding:14px 20px;border-bottom:1px solid var(--border);
+                {% if u.id == current_user.id %}background:rgba(240,192,64,.04){% endif %}">
+
+      <!-- Avatar -->
+      <div class="avatar" style="background:{{ u.username|av_color }};color:#060c14;
+                                 width:42px;height:42px;border-radius:10px;flex-shrink:0">
+        {{ u.username|initials }}
+      </div>
+
+      <!-- Infos -->
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:700;font-size:.88rem">{{ u.username }}</span>
+          {% if u.id == current_user.id %}
+            <span class="badge badge-gold">Moi</span>
+          {% endif %}
+          <span class="badge {% if u.role=='admin' %}badge-gold{% else %}badge-blue{% endif %}">
+            {{ '👑 Admin' if u.role == 'admin' else '👁 Viewer' }}
+          </span>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);font-family:var(--mono);margin-top:2px">
+          {{ u.email or 'Pas d\'email' }}
+          {% if u.last_login %}· Dernière connexion : {{ u.last_login.strftime('%d/%m/%Y') }}{% endif %}
+          {% if not u.last_login %}· Jamais connecté{% endif %}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      {% if u.id != current_user.id %}
+      <div style="display:flex;gap:6px;flex-shrink:0">
+
+        <!-- Changer rôle -->
+        <form method="POST" action="{{ url_for('settings.change_role', uid=u.id) }}"
+              style="display:inline">
+          <input type="hidden" name="role"
+                 value="{{ 'viewer' if u.role == 'admin' else 'admin' }}">
+          <button type="submit" class="btn btn-ghost btn-sm"
+                  title="{{ 'Rétrograder en Viewer' if u.role == 'admin' else 'Promouvoir Admin' }}"
+                  onclick="return confirm('Changer le rôle de {{ u.username }} ?')">
+            {{ '⬇️ Viewer' if u.role == 'admin' else '⬆️ Admin' }}
+          </button>
+        </form>
+
+        <!-- Supprimer -->
+        <form method="POST" action="{{ url_for('settings.delete_user', uid=u.id) }}"
+              style="display:inline"
+              onsubmit="return confirm('Supprimer « {{ u.username }} » ? Irréversible.')">
+          <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+        </form>
+      </div>
+      {% else %}
+      <span style="font-size:.72rem;color:var(--muted)">Compte actif</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Reset password (modal simple) -->
+    {% for u in users %}
+    {% if u.id != current_user.id %}
+    <div id="reset-{{ u.id }}" style="display:none;padding:14px 20px;
+         background:var(--card2);border-bottom:1px solid var(--border)">
+      <form method="POST" action="{{ url_for('settings.reset_user_password', uid=u.id) }}"
+            style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:.78rem;color:var(--muted2);white-space:nowrap">
+          🔐 Nouveau mdp pour <strong>{{ u.username }}</strong> :
+        </span>
+        <input type="password" name="new_password" class="form-control"
+               style="height:32px;flex:1" placeholder="Min. 6 car." minlength="6" required>
+        <button type="submit" class="btn btn-primary btn-sm">OK</button>
+        <button type="button" class="btn btn-ghost btn-sm"
+                onclick="document.getElementById('reset-{{ u.id }}').style.display='none'">✕</button>
+      </form>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Boutons reset -->
+    <div style="padding:12px 20px;border-top:1px solid var(--border)">
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">
+        🔐 Réinitialiser le mot de passe d'un utilisateur :
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        {% for u in users %}
+        {% if u.id != current_user.id %}
+        <button class="btn btn-ghost btn-sm"
+                onclick="toggleReset({{ u.id }})">
+          {{ u.username }}
+        </button>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Ajouter un utilisateur -->
+  <div class="card" style="height:fit-content">
+    <div class="card-header"><div class="card-title">➕ Ajouter un utilisateur</div></div>
+    <div class="card-body">
+
+      <!-- Explication rôles -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:.72rem;color:var(--muted);font-family:var(--mono);margin-bottom:8px">
+          // Rôles disponibles
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:var(--card2);border-radius:8px;padding:10px 12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span class="badge badge-gold">👑 Admin</span>
+            </div>
+            <div style="font-size:.72rem;color:var(--muted2)">
+              Accès total : lecture, écriture, suppression, gestion utilisateurs, export
+            </div>
+          </div>
+          <div style="background:var(--card2);border-radius:8px;padding:10px 12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span class="badge badge-blue">👁 Viewer</span>
+            </div>
+            <div style="font-size:.72rem;color:var(--muted2)">
+              Lecture seule : voir les données, les graphiques et les exports. Pas de modification.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('settings.add_user') }}">
+        <div class="form-group">
+          <label class="form-label">Nom d'utilisateur *</label>
+          <input type="text" name="username" class="form-control"
+                 placeholder="Ex : marie.dupont" required minlength="2">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control"
+                 placeholder="email@exemple.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe *</label>
+          <input type="password" name="password" class="form-control"
+                 placeholder="Min. 6 caractères" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rôle *</label>
+          <select name="role" class="form-control">
+            <option value="viewer">👁 Viewer — Lecture seule</option>
+            <option value="admin">👑 Admin — Accès total</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary"
+                style="width:100%;justify-content:center;height:40px">
+          ➕ Créer l'utilisateur
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleReset(uid) {
+  const el = document.getElementById('reset-' + uid);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

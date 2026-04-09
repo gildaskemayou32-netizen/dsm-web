@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ client_stats.client }}{% endblock %}
+{% block page_icon %}👤{% endblock %}
+{% block page_title %}{{ client_stats.client }}{% endblock %}
+{% block page_sub %}/ Fiche client{% endblock %}
+
+{% block content %}
+{% set av_c = client_stats.client|av_color %}
+
+<!-- Header -->
+<div class="card" style="margin-bottom:16px">
+  <div style="height:3px;background:{{ av_c }}"></div>
+  <div style="padding:24px 28px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+    <div class="avatar" style="background:{{ av_c }};color:#060c14;width:64px;height:64px;border-radius:16px;font-size:1.3rem;flex-shrink:0">
+      {{ client_stats.client|initials }}
+    </div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:1.3rem;font-weight:700">{{ client_stats.client }}</div>
+      <div style="font-size:.75rem;color:var(--muted);font-family:var(--mono);margin-top:4px">
+        {{ client_stats.transactions }} transactions · Dernière : {{ client_stats.derniere }}
+      </div>
+      <div style="margin-top:8px;font-size:.82rem;font-weight:600;color:{% if client_stats.marge_moy >= 50 %}var(--teal){% else %}var(--warn){% endif %}">
+        Marge moyenne : {{ client_stats.marge_moy }}%
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;min-width:320px">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px">
+        <div style="font-size:.65rem;color:var(--muted2);font-family:var(--mono);margin-bottom:4px">💵 Total reçu</div>
+        <div style="font-size:.95rem;font-weight:700;color:var(--blue)">{{ client_stats.total_recu|fmt_money }} FCFA</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px">
+        <div style="font-size:.65rem;color:var(--muted2);font-family:var(--mono);margin-bottom:4px">📈 Bénéfice net</div>
+        <div style="font-size:.95rem;font-weight:700;color:{% if client_stats.total_ben >= 0 %}var(--teal){% else %}var(--danger){% endif %}">
+          {{ client_stats.total_ben|fmt_money }} FCFA
+        </div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px">
+        <div style="font-size:.65rem;color:var(--muted2);font-family:var(--mono);margin-bottom:4px">🎯 Marge moy.</div>
+        <div style="font-size:.95rem;font-weight:700;color:var(--gold)">{{ client_stats.marge_moy }}%</div>
+      </div>
+    </div>
+
+    <a href="{{ url_for('clients.index') }}" class="btn btn-ghost">← Retour</a>
+  </div>
+</div>
+
+<!-- Historique -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🧾 Historique des transactions</div>
+    <span class="badge badge-blue">{{ transactions|length }} au total</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="r">Reçu (FCFA)</th>
+          <th class="r">Transport</th>
+          <th class="r">Autres</th>
+          <th class="r">Bénéfice</th>
+          <th class="r">Marge %</th>
+          <th class="c">Statut</th>
+          <th class="c">Date</th>
+          <th class="c">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td class="r text-blue text-mono">{{ t.montant_recu|fmt_money }}</td>
+          <td class="r text-muted2 text-mono">{{ t.transport|fmt_money }}</td>
+          <td class="r text-muted2 text-mono">{{ t.autres|fmt_money }}</td>
+          <td class="r text-mono {% if t.benefice >= 0 %}pos{% else %}neg{% endif %}">{{ t.benefice|fmt_money }}</td>
+          <td class="r text-mono" style="color:{% if t.marge >= 50 %}var(--teal){% else %}var(--warn){% endif %}">{{ t.marge }}%</td>
+          <td class="c">
+            {% if t.statut=='soldé' %}<span class="badge badge-solde">✓ Soldé</span>
+            {% elif t.statut=='partiel' %}<span class="badge badge-partiel">⏳ Partiel</span>
+            {% else %}<span class="badge badge-deficit">✗ Déficit</span>{% endif %}
+          </td>
+          <td class="c text-muted text-mono" style="font-size:.75rem">{{ t.date }}</td>
+          <td class="c">
+            <a href="{{ url_for('transactions.edit', tid=t.id) }}" class="btn btn-ghost btn-sm">✏️</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

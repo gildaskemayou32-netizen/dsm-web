@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Paiement — {{ plan_info.name }}{% endblock %}
+{% block page_icon %}💳{% endblock %}
+{% block page_title %}Paiement{% endblock %}
+{% block page_sub %}/ Plan {{ plan_info.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;margin:0 auto">
+
+  <!-- Résumé plan -->
+  <div class="card" style="margin-bottom:16px;border-color:{{ plan_info.color }}40">
+    <div style="height:3px;background:{{ plan_info.color }}"></div>
+    <div style="padding:20px 24px;display:flex;align-items:center;gap:18px">
+      <div style="font-size:3rem">{{ plan_info.icon }}</div>
+      <div style="flex:1">
+        <div style="font-size:1.1rem;font-weight:700;color:{{ plan_info.color }}">
+          Plan {{ plan_info.name }}
+        </div>
+        <div style="font-size:.8rem;color:var(--muted2);margin-top:4px">
+          Transactions : {{ plan_info.tx_limit if plan_info.tx_limit > 0 else 'Illimitées' }} ·
+          Utilisateurs : {{ plan_info.users_limit if plan_info.users_limit > 0 else 'Illimités' }} ·
+          Export : {{ 'Oui' if plan_info.export else 'Non' }}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:1.5rem;font-weight:700;color:{{ plan_info.color }}">
+          {{ "{:,}".format(plan_info.price_month).replace(",", " ") }} FCFA
+        </div>
+        <div style="font-size:.72rem;color:var(--muted)">par mois</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulaire paiement -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">💳 Choisir le moyen de paiement</div></div>
+    <div class="card-body">
+
+      <form method="POST" action="{{ url_for('billing.pay') }}" id="pay-form">
+        <input type="hidden" name="plan" value="{{ plan }}">
+
+        <!-- Durée -->
+        <div class="form-group">
+          <label class="form-label">📅 Durée de l'abonnement</label>
+          <select name="months" id="months-select" class="form-control" onchange="updateTotal()">
+            <option value="1">1 mois — {{ "{:,}".format(plan_info.price_month).replace(",", " ") }} FCFA</option>
+            <option value="3">3 mois — {{ "{:,}".format(plan_info.price_month * 3).replace(",", " ") }} FCFA</option>
+            <option value="6">6 mois — {{ "{:,}".format(plan_info.price_month * 6).replace(",", " ") }} FCFA
+              <span style="color:var(--success)"> (-10%)</span></option>
+            <option value="12">12 mois — {{ "{:,}".format((plan_info.price_month * 12 * 0.8)|int).replace(",", " ") }} FCFA
+              <span style="color:var(--success)"> (-20%)</span></option>
+          </select>
+        </div>
+
+        <!-- Total -->
+        <div style="background:var(--card2);border-radius:10px;padding:14px 18px;
+                    margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:.82rem;color:var(--muted2)">Total à payer</span>
+          <span id="total-display" style="font-size:1.2rem;font-weight:700;color:{{ plan_info.color }}">
+            {{ "{:,}".format(plan_info.price_month).replace(",", " ") }} FCFA
+          </span>
+        </div>
+
+        <!-- Méthodes de paiement -->
+        <div class="form-group">
+          <label class="form-label">💰 Méthode de paiement</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+
+            {% for method_key, method_label, method_icon, method_color, method_desc in [
+              ('mtn_momo',  'MTN MoMo',     '📱', '#ffd700', '237 6X XXX XXX'),
+              ('orange',    'Orange Money', '🔶', '#ff6600', '237 9X XXX XXX'),
+              ('visa',      'Carte Visa',   '💳', '#1a1aff', 'Visa / Mastercard'),
+              ('demo',      'DÉMO GRATUITE','🎮', '#10e080', 'Activer sans payer'),
+            ] %}
+            <label style="cursor:pointer">
+              <input type="radio" name="method" value="{{ method_key }}"
+                     onchange="showMethodFields('{{ method_key }}')"
+                     style="display:none" {% if method_key == 'mtn_momo' %}checked{% endif %}>
+              <div class="method-card" id="method-{{ method_key }}"
+                   style="padding:12px;border:2px solid var(--border);border-radius:10px;
+                          text-align:center;transition:all .15s;
+                          {% if method_key == 'mtn_momo' %}border-color:{{ method_color }}40;background:{{ method_color }}08{% endif %}">
+                <div style="font-size:1.4rem">{{ method_icon }}</div>
+                <div style="font-size:.78rem;font-weight:700;color:{{ method_color }};margin-top:4px">
+                  {{ method_label }}
+                </div>
+                <div style="font-size:.65rem;color:var(--muted);margin-top:2px">{{ method_desc }}</div>
+              </div>
+            </label>
+            {% endfor %}
+
+          </div>
+        </div>
+
+        <!-- Champ téléphone (Mobile Money) -->
+        <div id="phone-field" class="form-group">
+          <label class="form-label">📞 Numéro Mobile Money *</label>
+          <div style="display:flex;gap:8px">
+            <div style="background:var(--card2);border:1px solid var(--border2);
+                        border-radius:8px;padding:0 12px;display:flex;align-items:center;
+                        font-size:.82rem;color:var(--muted2);white-space:nowrap">
+              🇨🇲 +237
+            </div>
+            <input type="tel" name="phone" class="form-control"
+                   placeholder="6X XXX XXX" maxlength="9"
+                   oninput="this.value=this.value.replace(/\D/g,'')">
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:4px">
+            ⚡ Vous recevrez une notification sur votre téléphone pour confirmer.
+          </div>
+        </div>
+
+        <!-- Champ Visa -->
+        <div id="visa-field" style="display:none">
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;
+                      padding:16px;margin-bottom:16px;text-align:center">
+            <div style="font-size:.82rem;color:var(--muted2);margin-bottom:8px">
+              💳 Paiement par carte — Redirection vers page sécurisée
+            </div>
+            <div style="font-size:.72rem;color:var(--muted)">
+              Stripe / PayDunya — Visa, Mastercard acceptés
+            </div>
+          </div>
+        </div>
+
+        <!-- Message démo -->
+        <div id="demo-field" style="display:none">
+          <div style="background:rgba(16,224,128,.08);border:1px solid rgba(16,224,128,.2);
+                      border-radius:10px;padding:16px;margin-bottom:16px;text-align:center">
+            <div style="font-size:1.2rem;margin-bottom:6px">🎮</div>
+            <div style="font-size:.88rem;color:var(--success);font-weight:600;margin-bottom:4px">
+              Mode Démonstration
+            </div>
+            <div style="font-size:.75rem;color:var(--muted2)">
+              Active le plan {{ plan_info.name }} gratuitement (démo · 30 jours).<br>
+              Aucun paiement réel ne sera effectué.
+            </div>
+          </div>
+        </div>
+
+        <!-- Bouton payer -->
+        <button type="submit" class="btn btn-primary"
+                style="width:100%;justify-content:center;height:46px;font-size:.95rem"
+                id="pay-btn">
+          💰 Payer maintenant
+        </button>
+
+        <div style="margin-top:12px;text-align:center;font-size:.72rem;color:var(--muted)">
+          🔒 Paiement sécurisé · Activation immédiate · Annulable à tout moment
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;text-align:center">
+    <a href="{{ url_for('billing.pricing') }}" style="font-size:.8rem;color:var(--muted)">
+      ← Retour aux plans
+    </a>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PRICE = {{ plan_info.price_month }};
+const DISCOUNTS = {1: 1.0, 3: 1.0, 6: 0.9, 12: 0.8};
+
+function updateTotal() {
+  const months = parseInt(document.getElementById('months-select').value);
+  const total  = Math.round(PRICE * months * DISCOUNTS[months]);
+  document.getElementById('total-display').textContent =
+    total.toLocaleString('fr-FR') + ' FCFA';
+}
+
+function showMethodFields(method) {
+  // Reset tous les cards
+  document.querySelectorAll('.method-card').forEach(c => {
+    c.style.borderColor = 'var(--border)';
+    c.style.background  = '';
+  });
+  // Activer le sélectionné
+  const colors = {mtn_momo:'#ffd700',orange:'#ff6600',visa:'#1a1aff',demo:'#10e080'};
+  const card = document.getElementById('method-' + method);
+  if (card) {
+    card.style.borderColor = colors[method] + '60';
+    card.style.background  = colors[method] + '10';
+  }
+  // Champs conditionnels
+  document.getElementById('phone-field').style.display =
+    ['mtn_momo','orange'].includes(method) ? '' : 'none';
+  document.getElementById('visa-field').style.display  =
+    method === 'visa' ? '' : 'none';
+  document.getElementById('demo-field').style.display  =
+    method === 'demo' ? '' : 'none';
+
+  // Bouton
+  const btn = document.getElementById('pay-btn');
+  const labels = {
+    mtn_momo:'💰 Payer par MTN MoMo',
+    orange:  '💰 Payer par Orange Money',
+    visa:    '💳 Payer par carte Visa',
+    demo:    '🎮 Activer en mode démo'
+  };
+  btn.textContent = labels[method] || '💰 Payer maintenant';
+  if (method === 'demo') {
+    btn.style.background = 'linear-gradient(135deg,var(--teal),var(--blue))';
+  } else {
+    btn.style.background = '';
+  }
+}
+
+// Init
+document.querySelector('input[name="method"]:checked') &&
+  showMethodFields(document.querySelector('input[name="method"]:checked').value);
+</script>
+{% endblock %}

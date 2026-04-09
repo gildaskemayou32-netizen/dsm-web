@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Analytiques{% endblock %}
+{% block page_icon %}📈{% endblock %}
+{% block page_title %}Analytiques{% endblock %}
+{% block page_sub %}/ Vue d'ensemble{% endblock %}
+
+{% block content %}
+
+<!-- KPI recap -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px">
+  <div class="card">
+    <div style="height:2px;background:var(--gold)"></div>
+    <div style="padding:16px 20px">
+      <div style="font-size:.68rem;color:var(--muted2);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">💵 Revenus totaux</div>
+      <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">{{ stats.total_recu|fmt_money }} <span style="font-size:.72rem;color:var(--muted2)">FCFA</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="height:2px;background:var(--teal)"></div>
+    <div style="padding:16px 20px">
+      <div style="font-size:.68rem;color:var(--muted2);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">📈 Bénéfice net</div>
+      <div style="font-size:1.4rem;font-weight:700;color:var(--teal)">{{ stats.total_benefice|fmt_money }} <span style="font-size:.72rem;color:var(--muted2)">FCFA</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="height:2px;background:var(--violet2)"></div>
+    <div style="padding:16px 20px">
+      <div style="font-size:.68rem;color:var(--muted2);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">🎯 Marge moyenne</div>
+      <div style="font-size:1.4rem;font-weight:700;color:var(--violet2)">{{ stats.marge_moy }} <span style="font-size:.72rem;color:var(--muted2)">%</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Graphiques ligne 1 -->
+<div class="charts-row" style="margin-bottom:16px">
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">📊 Évolution mensuelle</div><div class="card-sub">// 12 mois</div></div>
+    </div>
+    <div class="card-body"><div class="chart-wrap" style="height:220px"><canvas id="lineChart"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">📊 Comparatif 6 mois</div><div class="card-sub">// Barres groupées</div></div>
+    </div>
+    <div class="card-body"><div class="chart-wrap" style="height:220px"><canvas id="barChart"></canvas></div></div>
+  </div>
+</div>
+
+<!-- Graphiques ligne 2 -->
+<div class="bottom-row" style="margin-bottom:16px">
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">🏆 Top clients</div><div class="card-sub">// Bénéfice net</div></div>
+    </div>
+    <div class="card-body"><div class="chart-wrap" style="height:220px"><canvas id="hbarChart"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">🎯 Répartition frais</div><div class="card-sub">// Transport vs Autres</div></div>
+    </div>
+    <div class="card-body"><div class="chart-wrap" style="height:160px"><canvas id="donutChart"></canvas></div></div>
+    {% set total_f = frais.transport + frais.autres %}
+    <div class="donut-legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--blue)"></div>
+        <span class="legend-label">Transport</span>
+        <span class="legend-val">{{ frais.transport|fmt_money }}</span>
+        <span class="legend-pct">{{ "%.0f%%"|format(frais.transport/total_f*100) if total_f > 0 else "—" }}</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--violet)"></div>
+        <span class="legend-label">Autres</span>
+        <span class="legend-val">{{ frais.autres|fmt_money }}</span>
+        <span class="legend-pct">{{ "%.0f%%"|format(frais.autres/total_f*100) if total_f > 0 else "—" }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tableau clients -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">👥 Récapitulatif par client</div>
+    <span class="badge badge-blue">{{ clients|length }} clients</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Client</th>
+          <th class="r">Transactions</th>
+          <th class="r">Reçu (FCFA)</th>
+          <th class="r">Bénéfice (FCFA)</th>
+          <th class="r">Marge %</th>
+          <th class="c">Dernière tx</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clients %}
+        <tr onclick="location.href='{{ url_for('clients.detail', client_name=c.client) }}'">
+          <td class="text-muted text-mono" style="font-size:.75rem">{{ loop.index }}</td>
+          <td>
+            <div class="client-cell">
+              <div class="avatar" style="background:{{ c.client|av_color }};color:#060c14;font-size:.62rem">
+                {{ c.client|initials }}
+              </div>
+              <span style="font-weight:600">{{ c.client }}</span>
+            </div>
+          </td>
+          <td class="r text-mono">{{ c.transactions }}</td>
+          <td class="r text-blue text-mono">{{ c.total_recu|fmt_money }}</td>
+          <td class="r text-mono {% if c.total_ben >= 0 %}pos{% else %}neg{% endif %}">{{ c.total_ben|fmt_money }}</td>
+          <td class="r text-mono" style="color:{% if c.marge_moy >= 50 %}var(--teal){% else %}var(--warn){% endif %}">{{ c.marge_moy }}%</td>
+          <td class="c text-muted text-mono" style="font-size:.75rem">{{ c.derniere }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MONTHLY = {{ monthly | tojson }};
+const CLIENTS = {{ clients | tojson }};
+const FRAIS   = {{ frais   | tojson }};
+const BASE_OPTS = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{
+    legend:{labels:{color:'#8490b0',font:{size:11},boxWidth:12,padding:14}},
+    tooltip:{backgroundColor:'#0f1424',borderColor:'rgba(255,255,255,.08)',borderWidth:1,
+             titleColor:'#dde3f5',bodyColor:'#8490b0'}
+  },
+  scales:{
+    x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#606a8c',font:{size:10}}},
+    y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#606a8c',font:{size:10}}}
+  }
+};
+
+// Courbe
+const lCtx=document.getElementById('lineChart').getContext('2d');
+const g1=lCtx.createLinearGradient(0,0,0,220); g1.addColorStop(0,'rgba(240,192,64,.18)'); g1.addColorStop(1,'rgba(240,192,64,0)');
+const g2=lCtx.createLinearGradient(0,0,0,220); g2.addColorStop(0,'rgba(14,240,192,.14)'); g2.addColorStop(1,'rgba(14,240,192,0)');
+new Chart(lCtx,{type:'line',data:{labels:MONTHLY.map(d=>d.label),datasets:[
+  {label:'Revenus (K)', data:MONTHLY.map(d=>d.revenus/1000),  borderColor:'#f0c040',backgroundColor:g1,borderWidth:2,pointRadius:3,fill:true,tension:.4},
+  {label:'Bénéfice (K)',data:MONTHLY.map(d=>d.benefice/1000), borderColor:'#0ef0c0',backgroundColor:g2,borderWidth:2,pointRadius:3,fill:true,tension:.4},
+]},options:{...BASE_OPTS,scales:{...BASE_OPTS.scales,y:{...BASE_OPTS.scales.y,ticks:{...BASE_OPTS.scales.y.ticks,callback:v=>`${v.toFixed(0)}K`}}}}});
+
+// Barres groupées
+const last6=MONTHLY.slice(-6);
+new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:last6.map(d=>d.label),datasets:[
+  {label:'Revenus', data:last6.map(d=>d.revenus/1000),  backgroundColor:'rgba(79,142,247,.8)',borderRadius:4},
+  {label:'Bénéfice',data:last6.map(d=>d.benefice/1000), backgroundColor:'rgba(14,240,192,.8)',borderRadius:4},
+]},options:{...BASE_OPTS,scales:{...BASE_OPTS.scales,y:{...BASE_OPTS.scales.y,ticks:{...BASE_OPTS.scales.y.ticks,callback:v=>`${v.toFixed(0)}K`}}}}});
+
+// Barres horizontales clients
+const PAL=['#f0c040','#0ef0c0','#4f8ef7','#8b5cf6','#f59e0b','#ec4899'];
+new Chart(document.getElementById('hbarChart'),{type:'bar',
+  data:{labels:CLIENTS.slice(0,8).map(c=>c.client.split(' ')[0]),datasets:[{
+    label:'Bénéfice (K)',data:CLIENTS.slice(0,8).map(c=>Math.max(c.total_ben/1000,0)),
+    backgroundColor:CLIENTS.slice(0,8).map((_,i)=>PAL[i%PAL.length]),borderRadius:4,barThickness:18}]},
+  options:{...BASE_OPTS,indexAxis:'y',
+    plugins:{...BASE_OPTS.plugins,legend:{display:false}},
+    scales:{...BASE_OPTS.scales,x:{...BASE_OPTS.scales.x,ticks:{...BASE_OPTS.scales.x.ticks,callback:v=>`${v.toFixed(0)}K`}}}}});
+
+// Donut
+new Chart(document.getElementById('donutChart'),{type:'doughnut',
+  data:{labels:['Transport','Autres'],datasets:[{data:[FRAIS.transport,FRAIS.autres],
+    backgroundColor:['#4f8ef7','#8b5cf6'],borderColor:'#0f1424',borderWidth:3,hoverOffset:6}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'70%',
+    plugins:{legend:{display:false},
+      tooltip:{backgroundColor:'#0f1424',borderColor:'rgba(255,255,255,.08)',borderWidth:1,
+        titleColor:'#dde3f5',bodyColor:'#8490b0',
+        callbacks:{label:c=>`  ${c.label}: ${(c.raw/1000).toFixed(0)}K FCFA`}}}}});
+</script>
+{% endblock %}

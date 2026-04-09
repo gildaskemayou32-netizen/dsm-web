@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}Plans & Tarifs{% endblock %}
+{% block page_icon %}💎{% endblock %}
+{% block page_title %}Plans & Tarifs{% endblock %}
+{% block page_sub %}/ Choisissez le plan qui vous convient{% endblock %}
+
+{% block content %}
+
+<!-- Barre plan actuel -->
+{% if ctx.plan != 'free' %}
+<div style="background:linear-gradient(135deg,rgba(14,240,192,.1),rgba(79,142,247,.1));
+            border:1px solid rgba(14,240,192,.25);border-radius:12px;
+            padding:14px 20px;margin-bottom:20px;
+            display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div>
+    <span style="font-size:.82rem;color:var(--muted2)">Plan actuel :</span>
+    <strong style="color:var(--teal);font-size:.92rem;margin-left:8px">
+      {{ ctx.plan_info.icon }} {{ ctx.plan_info.name }}
+    </strong>
+    {% if ctx.days_left < 9999 %}
+    <span style="font-size:.72rem;color:var(--muted);margin-left:10px;font-family:var(--mono)">
+      {{ ctx.days_left }} jour(s) restant(s)
+    </span>
+    {% endif %}
+  </div>
+  <a href="{{ url_for('billing.history') }}" class="btn btn-ghost btn-sm">📋 Historique</a>
+</div>
+{% endif %}
+
+<!-- Barre limite plan gratuit -->
+{% if ctx.is_free %}
+<div style="background:rgba(240,80,74,.08);border:1px solid rgba(240,80,74,.2);
+            border-radius:12px;padding:14px 20px;margin-bottom:24px">
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+    <span style="font-size:.85rem;font-weight:600;color:var(--danger)">
+      🆓 Plan Gratuit — {{ ctx.nb_tx }} / {{ ctx.tx_limit }} transactions
+    </span>
+    <span style="font-size:.78rem;color:var(--muted)">{{ ctx.tx_pct }}%</span>
+  </div>
+  <div style="height:6px;background:var(--hover);border-radius:3px;overflow:hidden">
+    <div style="height:100%;width:{{ ctx.tx_pct }}%;border-radius:3px;
+      background:{% if ctx.tx_pct >= 100 %}var(--danger){% elif ctx.tx_pct >= 80 %}var(--warn){% else %}var(--blue){% endif %};
+      transition:width .5s"></div>
+  </div>
+  {% if ctx.at_limit %}
+  <div style="margin-top:8px;font-size:.8rem;color:var(--danger)">
+    ⛔ Limite atteinte — Passez au plan Pro pour continuer.
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Titre section -->
+<div style="text-align:center;margin-bottom:28px">
+  <div style="font-size:1.3rem;font-weight:700;color:var(--text)">
+    Choisissez votre plan
+  </div>
+  <div style="font-size:.82rem;color:var(--muted2);margin-top:6px">
+    Activation immédiate · Paiement Mobile Money, Visa ou PayPal
+  </div>
+</div>
+
+<!-- Grille 3 plans -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;margin:0 auto 36px">
+
+  <!-- ═══ PLAN GRATUIT ═══ -->
+  {% set is_current_free = (ctx.plan == 'free') %}
+  <div style="background:var(--card);border:2px solid {% if is_current_free %}var(--teal){% else %}var(--border){% endif %};
+              border-radius:16px;overflow:hidden;position:relative">
+    {% if is_current_free %}
+    <div style="background:rgba(14,240,192,.15);text-align:center;padding:6px;
+                font-size:.72rem;font-weight:700;color:var(--teal)">✓ PLAN ACTUEL</div>
+    {% else %}<div style="height:28px"></div>{% endif %}
+    <div style="padding:22px 20px">
+      <div style="font-size:2rem;margin-bottom:8px">🆓</div>
+      <div style="font-size:1.05rem;font-weight:700;color:var(--muted2);margin-bottom:14px">Gratuit</div>
+      <div style="margin-bottom:18px">
+        <span style="font-size:1.8rem;font-weight:700;color:var(--text)">0</span>
+        <span style="font-size:.85rem;color:var(--muted)"> FCFA/mois</span>
+      </div>
+
+      <div style="font-size:.72rem;color:var(--muted);font-family:var(--mono);
+                  text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+        Fonctionnalités
+      </div>
+      {% for ok, feat in [
+        (True,  'Gestion basique des dépenses'),
+        (True,  'Gestion des revenus'),
+        (True,  'Tableau de bord simple'),
+        (True,  'Historique des transactions (30 max)'),
+        (False, 'Suggestions intelligentes'),
+        (False, 'Analyse avancée'),
+        (False, 'Export Excel/CSV'),
+        (False, 'Assistant IA'),
+      ] %}
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;
+                  border-bottom:1px solid var(--border)">
+        <span style="font-size:.8rem;{% if not ok %}opacity:.4{% endif %}">
+          {{ '✅' if ok else '❌' }}
+        </span>
+        <span style="font-size:.78rem;color:{% if ok %}var(--muted2){% else %}var(--muted){% endif %};
+                     {% if not ok %}opacity:.5{% endif %}">
+          {{ feat }}
+        </span>
+      </div>
+      {% endfor %}
+
+      <div style="margin-top:18px">
+        {% if is_current_free %}
+        <div style="text-align:center;padding:10px;background:rgba(14,240,192,.08);
+                    border-radius:8px;font-size:.82rem;color:var(--teal);font-weight:600">
+          ✓ Plan actif
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:10px;background:var(--card2);
+                    border-radius:8px;font-size:.82rem;color:var(--muted)">
+          Plan de départ
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PLAN PRO ═══ -->
+  {% set is_current_pro = (ctx.plan == 'pro') %}
+  <div style="background:var(--card);border:2px solid {% if is_current_pro %}var(--teal){% else %}var(--gold){% endif %};
+              border-radius:16px;overflow:hidden;position:relative;
+              box-shadow:0 0 30px rgba(240,192,64,.1)"
+       onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 14px 40px rgba(0,0,0,.4)'"
+       onmouseleave="this.style.transform='';this.style.boxShadow='0 0 30px rgba(240,192,64,.1)'">
+    {% if is_current_pro %}
+    <div style="background:rgba(14,240,192,.15);text-align:center;padding:6px;
+                font-size:.72rem;font-weight:700;color:var(--teal)">✓ PLAN ACTUEL</div>
+    {% else %}
+    <div style="background:linear-gradient(135deg,var(--gold),#c97800);
+                text-align:center;padding:6px;font-size:.72rem;
+                font-weight:700;color:#050300;letter-spacing:.05em">⭐ PLUS POPULAIRE</div>
+    {% endif %}
+    <div style="padding:22px 20px">
+      <div style="font-size:2rem;margin-bottom:8px">💼</div>
+      <div style="font-size:1.05rem;font-weight:700;color:var(--blue);margin-bottom:14px">Pro</div>
+      <div style="margin-bottom:18px">
+        <span style="font-size:1.8rem;font-weight:700;color:var(--gold)">2 000</span>
+        <span style="font-size:.85rem;color:var(--muted)"> FCFA/mois</span>
+      </div>
+
+      <div style="font-size:.72rem;color:var(--muted);font-family:var(--mono);
+                  text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+        Tout du Gratuit, plus :
+      </div>
+      {% for feat in [
+        'Transactions illimitées',
+        'Export Excel 3 feuilles',
+        'Analytiques avancées (4 graphiques)',
+        'Alertes déficit & marge faible',
+        '3 utilisateurs simultanés',
+        '— Suggestions automatiques —',
+        'Amélioration des ventes',
+        'Optimisation des dépenses',
+        'Analyse des marges',
+        'Suggestions liées aux clients',
+        'Alertes baisse d\'activité',
+        '❌ Assistant IA conversationnel',
+      ] %}
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;
+                  border-bottom:1px solid var(--border)">
+        {% if feat.startswith('—') %}
+        <span style="font-size:.75rem;font-weight:700;color:var(--blue)">{{ feat }}</span>
+        {% elif feat.startswith('❌') %}
+        <span style="font-size:.75rem;color:var(--muted);opacity:.5">{{ feat }}</span>
+        {% else %}
+        <span style="font-size:.8rem">✅</span>
+        <span style="font-size:.78rem;color:var(--muted2)">{{ feat }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <div style="margin-top:18px">
+        {% if is_current_pro %}
+        <div style="text-align:center;padding:10px;background:rgba(14,240,192,.08);
+                    border-radius:8px;font-size:.82rem;color:var(--teal);font-weight:600">
+          ✓ Plan actif
+        </div>
+        {% else %}
+        <a href="{{ url_for('billing.checkout', plan='pro') }}"
+           style="display:block;text-align:center;padding:12px;
+                  background:linear-gradient(135deg,var(--gold),#c97800);
+                  color:#050300;border-radius:8px;font-size:.88rem;
+                  font-weight:700;text-decoration:none">
+          Choisir Pro →
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PLAN PRO+ ═══ -->
+  {% set is_current_pp = (ctx.plan == 'pro_plus') %}
+  <div style="background:linear-gradient(180deg,var(--card),rgba(240,192,64,.04));
+              border:2px solid {% if is_current_pp %}var(--teal){% else %}rgba(240,192,64,.3){% endif %};
+              border-radius:16px;overflow:hidden;position:relative"
+       onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 14px 40px rgba(240,192,64,.15)'"
+       onmouseleave="this.style.transform='';this.style.boxShadow=''">
+    {% if is_current_pp %}
+    <div style="background:rgba(14,240,192,.15);text-align:center;padding:6px;
+                font-size:.72rem;font-weight:700;color:var(--teal)">✓ PLAN ACTUEL</div>
+    {% else %}<div style="height:28px"></div>{% endif %}
+    <div style="padding:22px 20px">
+      <div style="font-size:2rem;margin-bottom:8px">🚀</div>
+      <div style="font-size:1.05rem;font-weight:700;color:var(--gold);margin-bottom:14px">Pro+</div>
+      <div style="margin-bottom:18px">
+        <span style="font-size:1.8rem;font-weight:700;color:var(--gold)">5 000</span>
+        <span style="font-size:.85rem;color:var(--muted)"> FCFA/mois</span>
+      </div>
+
+      <div style="font-size:.72rem;color:var(--muted);font-family:var(--mono);
+                  text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+        Tout du Pro, plus :
+      </div>
+      {% for feat in [
+        'Utilisateurs illimités',
+        '— Assistant IA interactif 🤖 —',
+        'Chat libre — questions illimitées',
+        'Réponses basées sur tes données',
+        'Recommandations marketing IA',
+        'Optimisation des prix & marges',
+        'Fidélisation clients IA',
+        'Analyse des tendances avancée',
+        'Détection automatique problèmes',
+        'Analyse prédictive simple',
+        'Suggestions de promotions',
+        'Accès recherche externe (business)',
+      ] %}
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;
+                  border-bottom:1px solid var(--border)">
+        {% if feat.startswith('—') %}
+        <span style="font-size:.75rem;font-weight:700;color:var(--gold)">{{ feat }}</span>
+        {% else %}
+        <span style="font-size:.8rem">✅</span>
+        <span style="font-size:.78rem;color:var(--muted2)">{{ feat }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <div style="margin-top:18px">
+        {% if is_current_pp %}
+        <div style="text-align:center;padding:10px;background:rgba(14,240,192,.08);
+                    border-radius:8px;font-size:.82rem;color:var(--teal);font-weight:600">
+          ✓ Plan actif
+        </div>
+        {% else %}
+        <a href="{{ url_for('billing.checkout', plan='pro_plus') }}"
+           style="display:block;text-align:center;padding:12px;
+                  background:linear-gradient(135deg,rgba(240,192,64,.2),rgba(139,92,246,.2));
+                  border:1px solid rgba(240,192,64,.4);
+                  color:var(--gold);border-radius:8px;font-size:.88rem;
+                  font-weight:700;text-decoration:none">
+          Choisir Pro+ →
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tableau comparatif Pro vs Pro+ -->
+<div style="max-width:960px;margin:0 auto 28px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">⚡ Différence clé — Pro vs Pro+</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+        <thead>
+          <tr style="background:var(--bg2)">
+            <th style="padding:12px 20px;text-align:left;color:var(--muted);
+                       font-size:.7rem;text-transform:uppercase;letter-spacing:.07em">
+              Fonctionnalité
+            </th>
+            <th style="padding:12px 20px;text-align:center;color:var(--blue);font-weight:700">
+              💼 Pro
+            </th>
+            <th style="padding:12px 20px;text-align:center;color:var(--gold);font-weight:700">
+              🚀 Pro+
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for feat, pro, pp in [
+            ('Suggestions automatiques',           '✅ Oui',      '✅ Oui'),
+            ('Interaction / Chat libre',           '❌ Non',      '✅ Oui'),
+            ('IA conversationnelle',               '❌ Non',      '✅ Oui'),
+            ('Questions illimitées à l\'IA',       '❌ Non',      '✅ Oui'),
+            ('Réponses sur tes données réelles',   '❌ Non',      '✅ Oui'),
+            ('Recommandations marketing IA',       '❌ Non',      '✅ Oui'),
+            ('Analyse prédictive',                 '❌ Non',      '✅ Oui'),
+            ('Recherche externe (tendances)',      '❌ Non',      '✅ Oui'),
+            ('Conseils personnalisés dynamiques',  '❌ Non',      '✅ Oui'),
+            ('Prix mensuel',                       '2 000 FCFA',  '5 000 FCFA'),
+          ] %}
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:10px 20px;color:var(--muted2)">{{ feat }}</td>
+            <td style="padding:10px 20px;text-align:center;
+                       color:{% if pro.startswith('✅') %}var(--success){% elif pro.startswith('❌') %}var(--muted){% else %}var(--blue){% endif %}">
+              {{ pro }}
+            </td>
+            <td style="padding:10px 20px;text-align:center;
+                       color:{% if pp.startswith('✅') %}var(--success){% elif pp.startswith('❌') %}var(--muted){% else %}var(--gold){% endif %}">
+              {{ pp }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div style="max-width:960px;margin:0 auto">
+  <div class="card">
+    <div class="card-header"><div class="card-title">❓ Questions fréquentes</div></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        {% for q, a in [
+          ('Comment payer ?', 'MTN Mobile Money, Orange Money, carte Visa ou mode démo gratuit.'),
+          ('Activation immédiate ?', 'Oui ! Dès confirmation du paiement, ton plan s\'active instantanément.'),
+          ('L\'IA a accès à quoi ?', 'Tes transactions, clients, bénéfices, frais et tendances mensuelles.'),
+          ('Puis-je annuler ?', 'Oui, ton plan reste actif jusqu\'à la fin de la période payée.'),
+          ('La démo est vraiment gratuite ?', 'Oui ! Mode démo = 30 jours Pro+ sans rien payer.'),
+          ('Mes données sont sécurisées ?', 'Oui, l\'IA ne stocke rien. Elle analyse uniquement ta session.'),
+        ] %}
+        <div style="padding:14px;background:var(--card2);border-radius:10px">
+          <div style="font-size:.82rem;font-weight:700;color:var(--gold);margin-bottom:6px">{{ q }}</div>
+          <div style="font-size:.78rem;color:var(--muted2)">{{ a }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

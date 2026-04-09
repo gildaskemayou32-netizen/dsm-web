@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+{% block title %}Support{% endblock %}
+{% block page_icon %}🎧{% endblock %}
+{% block page_title %}Support{% endblock %}
+{% block page_sub %}/ Aide, questions &amp; suggestions{% endblock %}
+
+{% block topbar_actions %}{% endblock %}
+
+{% block content %}
+
+<!-- ══ HERO SUPPORT ══ -->
+<div style="background:linear-gradient(135deg,rgba(79,142,247,.1),rgba(139,92,246,.07));
+            border:1px solid rgba(79,142,247,.2);border-radius:14px;
+            padding:22px 28px;margin-bottom:22px;
+            display:flex;align-items:center;justify-content:space-between;
+            flex-wrap:wrap;gap:14px">
+  <div>
+    <div style="font-size:1.05rem;font-weight:700;color:var(--text)">
+      🎧 Comment pouvons-nous t'aider ?
+    </div>
+    <div style="font-size:.82rem;color:var(--muted2);margin-top:4px">
+      Signale un problème, pose une question ou propose une amélioration.
+      Nous répondons rapidement.
+    </div>
+  </div>
+  <!-- WhatsApp -->
+  <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_msg|urlencode }}"
+     target="_blank"
+     style="display:flex;align-items:center;gap:10px;padding:12px 18px;
+            background:#25D366;color:#fff;border-radius:10px;
+            font-size:.85rem;font-weight:700;text-decoration:none;
+            transition:filter .15s;box-shadow:0 4px 16px rgba(37,211,102,.3)"
+     onmouseenter="this.style.filter='brightness(1.1)'"
+     onmouseleave="this.style.filter=''">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+    WhatsApp
+  </a>
+</div>
+
+<!-- ══ GRILLE PRINCIPALE ══ -->
+<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:20px">
+
+  <!-- FORMULAIRE -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">✉️ Envoyer un message</div>
+        <div class="card-sub">// Nous répondons dans les 24h</div>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <form id="support-form" onsubmit="sendSupport(event)">
+
+        <!-- Type de demande -->
+        <div class="form-group">
+          <label class="form-label">📋 Type de demande *</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            {% for key, info in types.items() %}
+            <label style="cursor:pointer">
+              <input type="radio" name="type" value="{{ key }}"
+                     style="display:none"
+                     {% if key == 'question' %}checked{% endif %}
+                     onchange="selectType('{{ key }}')">
+              <div class="type-card" id="type-{{ key }}"
+                   style="padding:10px 12px;border:1.5px solid
+                          {% if key == 'question' %}{{ info.color }}{% else %}var(--border){% endif %};
+                          border-radius:9px;text-align:center;transition:all .15s;
+                          background:{% if key == 'question' %}{{ info.color }}12{% else %}var(--card2){% endif %}">
+                <div style="font-size:1.1rem">{{ info.icon }}</div>
+                <div style="font-size:.72rem;font-weight:600;margin-top:3px;
+                            color:{% if key == 'question' %}{{ info.color }}{% else %}var(--muted2){% endif %}">
+                  {{ info.label }}
+                </div>
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Nom + Email -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label class="form-label">👤 Nom (optionnel)</label>
+            <input type="text" name="name" class="form-control"
+                   placeholder="{{ current_user.username }}"
+                   value="{{ current_user.username }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">📧 Email (optionnel)</label>
+            <input type="email" name="email" class="form-control"
+                   placeholder="ton@email.com"
+                   value="{{ current_user.email or '' }}">
+          </div>
+        </div>
+
+        <!-- Message -->
+        <div class="form-group">
+          <label class="form-label">💬 Message *</label>
+          <textarea name="message" id="support-msg" class="form-control"
+                    rows="5" placeholder="Décris ton problème ou ta question en détail..."
+                    required minlength="10" maxlength="2000"
+                    oninput="updateCharCount(this)"></textarea>
+          <div style="display:flex;justify-content:space-between;margin-top:5px">
+            <span style="font-size:.68rem;color:var(--muted)">Min. 10 caractères</span>
+            <span id="msg-count" style="font-size:.68rem;color:var(--muted);font-family:var(--mono)">0/2000</span>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" id="support-btn" class="btn btn-primary"
+                style="width:100%;justify-content:center;height:44px;font-size:.9rem">
+          ✉️ Envoyer le message
+        </button>
+
+        <!-- Confirmation inline -->
+        <div id="support-success"
+             style="display:none;margin-top:14px;padding:14px;
+                    background:rgba(16,224,128,.08);border:1px solid rgba(16,224,128,.2);
+                    border-radius:10px;text-align:center">
+          <div style="font-size:1.3rem;margin-bottom:6px">✅</div>
+          <div style="font-size:.85rem;font-weight:600;color:var(--success)">
+            Message envoyé avec succès !
+          </div>
+          <div style="font-size:.78rem;color:var(--muted2);margin-top:4px">
+            Nous te répondrons rapidement. Merci !
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- PANNEAU DROIT -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <!-- Contact rapide -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">⚡ Contact rapide</div>
+      </div>
+      <div class="card-body">
+        <!-- WhatsApp -->
+        <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_msg|urlencode }}"
+           target="_blank"
+           style="display:flex;align-items:center;gap:12px;padding:14px;
+                  background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.2);
+                  border-radius:10px;text-decoration:none;margin-bottom:10px;
+                  transition:all .15s"
+           onmouseenter="this.style.background='rgba(37,211,102,.14)'"
+           onmouseleave="this.style.background='rgba(37,211,102,.08)'">
+          <div style="width:40px;height:40px;border-radius:10px;background:#25D366;
+                      display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:.85rem;font-weight:700;color:#25D366">WhatsApp</div>
+            <div style="font-size:.72rem;color:var(--muted2)">Réponse rapide · Message pré-rempli</div>
+          </div>
+          <span style="margin-left:auto;color:var(--muted);font-size:.8rem">→</span>
+        </a>
+
+        <!-- Email direct -->
+        <div style="padding:12px;background:var(--card2);border:1px solid var(--border);
+                    border-radius:10px;display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:9px;background:rgba(79,142,247,.15);
+                      display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">
+            📧
+          </div>
+          <div>
+            <div style="font-size:.8rem;font-weight:600;color:var(--text)">Formulaire ci-contre</div>
+            <div style="font-size:.72rem;color:var(--muted2)">Réponse sous 24h</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mes messages récents -->
+    {% if user_messages %}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📬 Mes messages récents</div>
+      </div>
+      <div style="padding:0">
+        {% for m in user_messages %}
+        <div style="padding:12px 18px;border-bottom:1px solid var(--border);
+                    display:flex;align-items:center;gap:10px">
+          <span style="font-size:1rem">{{ m.type_info.icon }}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.78rem;font-weight:600;color:var(--text);
+                        overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              {{ m.message[:50] }}{% if m.message|length > 50 %}...{% endif %}
+            </div>
+            <div style="font-size:.65rem;color:var(--muted);font-family:var(--mono);margin-top:2px">
+              {{ m.created_at.strftime('%d/%m/%Y %H:%M') }}
+            </div>
+          </div>
+          <span style="padding:2px 8px;border-radius:20px;font-size:.62rem;font-weight:700;
+                       background:{{ m.status_info.color }}18;color:{{ m.status_info.color }}">
+            {{ m.status_info.label }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ══ AIDE RAPIDE (accordéon) ══ -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📖 Aide rapide</div>
+    </div>
+    <div>
+      {% for icon, title, content in [
+        ('➕','Comment ajouter une transaction ?',
+          'Clique sur « ➕ Nouvelle transaction » dans la topbar ou la sidebar. Remplis le client, l\'argent reçu, le transport, les autres frais et la date. Le bénéfice se calcule automatiquement.'),
+        ('📊','Comment consulter les statistiques ?',
+          'Va dans « 📈 Analytiques » dans la sidebar. Tu y trouveras 4 graphiques : évolution mensuelle, comparatif, top clients et répartition des frais.'),
+        ('🤖','Comment utiliser l\'assistant IA ?',
+          'L\'assistant IA est disponible avec le plan Pro+. Va dans « 🤖 Assistant IA » dans la sidebar. Tu peux poser n\'importe quelle question sur tes données ou sur le business en général.'),
+        ('💎','Comment passer en Pro+ ?',
+          'Va dans « 💎 Plans & Tarifs » dans la sidebar. Sélectionne le plan Pro+ et choisis ton moyen de paiement (MTN MoMo, Orange Money, Visa, ou démo gratuite).'),
+        ('📤','Comment exporter mes données ?',
+          'Sur la page Transactions, clique sur « 📊 Excel » ou « 📄 CSV » pour télécharger tes données. L\'export Excel contient 3 feuilles : Transactions, Récapitulatif et Par Client.'),
+        ('👥','Comment ajouter des utilisateurs ?',
+          'Va dans ⚙️ Paramètres → 👥 Utilisateurs. Remplis le formulaire avec le nom, email, mot de passe et rôle (Admin ou Viewer). Accessible uniquement si tu es Admin.'),
+      ] %}
+      <div class="faq-item"
+           onclick="toggleFaq(this)"
+           style="border-bottom:1px solid var(--border);cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:14px 20px;transition:background .14s"
+             onmouseenter="this.style.background='var(--hover)'"
+             onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:1rem">{{ icon }}</span>
+            <span style="font-size:.82rem;font-weight:600;color:var(--text)">{{ title }}</span>
+          </div>
+          <span class="faq-arrow"
+                style="color:var(--muted);font-size:.85rem;transition:transform .2s">▼</span>
+        </div>
+        <div class="faq-body"
+             style="display:none;padding:0 20px 14px 46px;
+                    font-size:.8rem;color:var(--muted2);line-height:1.5">
+          {{ content }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">❓ Questions fréquentes</div>
+    </div>
+    <div>
+      {% for q, a in [
+        ('Comment activer le plan Pro+ ?',
+          'Va dans « 💎 Plans & Tarifs » dans la sidebar. Clique sur « Choisir Pro+ ». Tu peux payer par MTN MoMo, Orange Money, Visa ou tester gratuitement avec le mode Démo (30 jours).'),
+        ('Pourquoi l\'IA ne répond pas ?',
+          'L\'IA Pro+ nécessite une clé API Anthropic configurée dans le fichier .env (ANTHROPIC_API_KEY). Sans clé, un système de réponses local prend le relais automatiquement.'),
+        ('Comment sauvegarder mes données ?',
+          'Tes données sont dans le fichier instance/dsm_enterprise.db. Copie ce fichier régulièrement sur Google Drive ou une clé USB. Tu peux aussi exporter en Excel/CSV depuis la page Transactions.'),
+        ('L\'application fonctionne sur mobile ?',
+          'Oui ! L\'application est entièrement responsive. Accède-y depuis le navigateur de ton téléphone via l\'IP réseau affichée au démarrage (ex: 192.168.1.X:5000) ou l\'URL en ligne si déployée.'),
+        ('Comment modifier un prix ou une transaction ?',
+          'Sur la page Transactions, clique sur le bouton ✏️ à droite de la transaction à modifier. Tu peux changer tous les champs. La modification est immédiate.'),
+        ('Je ne peux plus me connecter, que faire ?',
+          'Lance le script reset_admin.py dans le terminal après avoir modifié ton nouveau nom et mot de passe dans le fichier. Ce script réinitialise le compte admin directement.'),
+        ('Comment contacter le support directement ?',
+          'Utilise le formulaire sur cette page, ou clique sur le bouton WhatsApp en haut. Nous répondons en général dans les 24 heures.'),
+      ] %}
+      <div class="faq-item" onclick="toggleFaq(this)"
+           style="border-bottom:1px solid var(--border);cursor:pointer">
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:13px 20px;transition:background .14s"
+             onmouseenter="this.style.background='var(--hover)'"
+             onmouseleave="this.style.background=''">
+          <span style="font-size:.82rem;font-weight:600;color:var(--text)">{{ q }}</span>
+          <span class="faq-arrow"
+                style="color:var(--muted);font-size:.85rem;transition:transform .2s;flex-shrink:0;margin-left:8px">▼</span>
+        </div>
+        <div class="faq-body"
+             style="display:none;padding:0 20px 12px;
+                    font-size:.78rem;color:var(--muted2);line-height:1.5">
+          {{ a }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const API_URL = "{{ url_for('support.api_send') }}";
+const TYPE_COLORS = {
+  bug: '#f0504a', question: '#4f8ef7', feature: '#f0c040',
+  billing: '#0ef0c0', request: '#8b5cf6', other: '#8490b0'
+};
+
+// ── Sélectionner un type ────────────────────────────────────────────────
+function selectType(key) {
+  document.querySelectorAll('.type-card').forEach(c => {
+    c.style.borderColor = 'var(--border)';
+    c.style.background  = 'var(--card2)';
+    c.querySelector('div:last-child').style.color = 'var(--muted2)';
+  });
+  const card = document.getElementById('type-' + key);
+  if (card && TYPE_COLORS[key]) {
+    card.style.borderColor = TYPE_COLORS[key];
+    card.style.background  = TYPE_COLORS[key] + '15';
+    card.querySelector('div:last-child').style.color = TYPE_COLORS[key];
+  }
+}
+
+// ── Compteur de caractères ───────────────────────────────────────────────
+function updateCharCount(el) {
+  document.getElementById('msg-count').textContent = el.value.length + '/2000';
+}
+
+// ── Envoyer via AJAX ────────────────────────────────────────────────────
+async function sendSupport(e) {
+  e.preventDefault();
+  const form = document.getElementById('support-form');
+  const btn  = document.getElementById('support-btn');
+  const msg  = document.getElementById('support-msg').value.trim();
+
+  if (msg.length < 10) {
+    alert('Le message doit faire au moins 10 caractères.');
+    return;
+  }
+
+  const typeEl = document.querySelector('input[name="type"]:checked');
+  const data   = {
+    name:    form.querySelector('[name=name]').value.trim(),
+    email:   form.querySelector('[name=email]').value.trim(),
+    type:    typeEl ? typeEl.value : 'question',
+    message: msg,
+  };
+
+  btn.textContent = '⏳ Envoi en cours...';
+  btn.disabled    = true;
+
+  try {
+    const resp   = await fetch(API_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(data),
+    });
+    const result = await resp.json();
+
+    if (resp.ok && result.success) {
+      form.style.display = 'none';
+      document.getElementById('support-success').style.display = 'block';
+    } else {
+      alert('❌ Erreur : ' + (result.error || 'Réessaie.'));
+      btn.textContent = '✉️ Envoyer le message';
+      btn.disabled    = false;
+    }
+  } catch(err) {
+    alert('❌ Connexion impossible. Réessaie.');
+    btn.textContent = '✉️ Envoyer le message';
+    btn.disabled    = false;
+  }
+}
+
+// ── Accordéon FAQ ────────────────────────────────────────────────────────
+function toggleFaq(item) {
+  const body  = item.querySelector('.faq-body');
+  const arrow = item.querySelector('.faq-arrow');
+  const open  = body.style.display !== 'none';
+  body.style.display  = open ? 'none' : 'block';
+  arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Historique paiements{% endblock %}
+{% block page_icon %}📋{% endblock %}
+{% block page_title %}Historique des paiements{% endblock %}
+{% block page_sub %}/ {{ payments|length }} paiement(s){% endblock %}
+
+{% block content %}
+
+<!-- Plan actuel -->
+<div class="card" style="margin-bottom:16px">
+  <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <span style="font-size:.8rem;color:var(--muted2)">Plan actuel :</span>
+      <strong style="color:var(--gold);margin-left:8px">
+        {{ plans[sub.plan].icon }} {{ plans[sub.plan].name }}
+      </strong>
+      {% if sub.days_left < 9999 %}
+      <span style="font-size:.72rem;color:var(--muted);margin-left:10px">
+        ({{ sub.days_left }} jours restants)
+      </span>
+      {% endif %}
+    </div>
+    <a href="{{ url_for('billing.pricing') }}" class="btn btn-primary btn-sm">
+      Changer de plan
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">📋 Historique des paiements</div>
+  </div>
+  {% if payments %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Plan</th><th>Méthode</th>
+          <th class="r">Montant</th>
+          <th class="c">Statut</th>
+          <th class="c">Référence</th>
+          <th class="c">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td>
+            {% set pi = plans.get(p.plan, plans.free) %}
+            <span style="color:{{ pi.color }}">{{ pi.icon }} {{ pi.name }}</span>
+          </td>
+          <td style="font-size:.78rem">
+            {% set icons = {'mtn_momo':'📱 MTN MoMo','orange':'🔶 Orange','visa':'💳 Visa','demo':'🎮 Démo'} %}
+            {{ icons.get(p.method, p.method) }}
+          </td>
+          <td class="r text-mono">{{ "{:,}".format(p.amount|int).replace(",", " ") }} FCFA</td>
+          <td class="c">
+            {% if p.status == 'success' %}
+              <span class="badge badge-solde">✓ Succès</span>
+            {% elif p.status == 'pending' %}
+              <span class="badge badge-partiel">⏳ En attente</span>
+            {% else %}
+              <span class="badge badge-deficit">✗ Échoué</span>
+            {% endif %}
+          </td>
+          <td class="c text-mono" style="font-size:.72rem">{{ p.reference or '—' }}</td>
+          <td class="c text-muted text-mono text-sm">
+            {{ p.created_at.strftime('%d/%m/%Y') if p.created_at else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:40px;color:var(--muted)">
+    Aucun paiement enregistré.
+    <a href="{{ url_for('billing.pricing') }}" style="color:var(--gold);display:block;margin-top:8px">
+      Voir les plans →
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

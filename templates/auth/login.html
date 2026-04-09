@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion — Digital Services CM</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+
+    <!-- Logo -->
+    <div class="login-logo">
+      <div class="icon">💰</div>
+      <h1>Digital Services CM</h1>
+      <p>Enterprise Edition v3.0.0</p>
+    </div>
+
+    <!-- Erreur -->
+    {% if error %}
+    <div class="flash flash-error" style="margin-bottom:20px">❌ {{ error }}</div>
+    {% endif %}
+
+    <!-- Formulaire -->
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">👤 Nom d'utilisateur</label>
+        <input type="text" name="username" class="form-control"
+               placeholder="admin" autocomplete="username"
+               value="{{ request.form.get('username','') }}" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🔒 Mot de passe</label>
+        <input type="password" name="password" class="form-control"
+               placeholder="••••••••" autocomplete="current-password" required>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+        <input type="checkbox" name="remember" id="remember"
+               style="accent-color:var(--gold)">
+        <label for="remember" style="font-size:.8rem;color:var(--muted2);cursor:pointer">
+          Se souvenir de moi
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary"
+              style="width:100%;height:42px;font-size:.9rem;justify-content:center">
+        Connexion →
+      </button>
+    </form>
+
+    <!-- Infos démo -->
+    <div style="margin-top:20px;padding:12px;background:var(--card2);
+                border-radius:var(--r-sm);border:1px solid var(--border);">
+      <p style="font-size:.72rem;color:var(--muted);font-family:var(--mono);margin-bottom:4px">
+        // Compte par défaut
+      </p>
+      <p style="font-size:.78rem;color:var(--muted2)">
+        Utilisateur : <strong style="color:var(--gold)">admin</strong><br>
+        Mot de passe : <strong style="color:var(--gold)">admin123</strong>
+      </p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

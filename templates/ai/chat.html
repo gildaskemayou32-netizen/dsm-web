@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% block title %}Assistant IA Pro+{% endblock %}
+{% block page_icon %}🤖{% endblock %}
+{% block page_title %}Assistant IA Pro+{% endblock %}
+{% block page_sub %}/ Chat intelligent · Données internes + Recherche web{% endblock %}
+
+{% block content %}
+
+<div style="display:grid;grid-template-columns:1fr 290px;gap:16px;
+            height:calc(100vh - 160px);min-height:520px">
+
+  <!-- ═══ ZONE CHAT ═══ -->
+  <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
+
+    <!-- Header -->
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);
+                background:linear-gradient(135deg,rgba(240,192,64,.07),rgba(139,92,246,.05));
+                flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:12px;
+                      background:linear-gradient(135deg,var(--gold),var(--violet));
+                      display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+                      box-shadow:0 0 16px rgba(240,192,64,.3)">🤖</div>
+          <div>
+            <div style="font-size:.88rem;font-weight:700">Assistant IA — Digital Services CM</div>
+            <div style="font-size:.68rem;color:var(--success);
+                        display:flex;align-items:center;gap:5px;margin-top:2px">
+              <span style="width:6px;height:6px;border-radius:50%;
+                           background:var(--success);display:inline-block;
+                           animation:pulse 2s ease infinite"></span>
+              En ligne · Données internes &amp; Web
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div id="web-indicator" style="display:none;padding:4px 10px;border-radius:20px;
+               background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.25);
+               font-size:.68rem;color:var(--blue);font-family:var(--mono)">
+            🌐 Recherche web active
+          </div>
+          <button onclick="clearChat()" class="btn btn-ghost btn-sm">🗑 Effacer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="chat-messages"
+         style="flex:1;overflow-y:auto;padding:18px;
+                display:flex;flex-direction:column;gap:14px">
+
+      <!-- Message de bienvenue -->
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="width:30px;height:30px;border-radius:9px;flex-shrink:0;
+                    background:linear-gradient(135deg,var(--gold),var(--violet));
+                    display:flex;align-items:center;justify-content:center;font-size:.8rem">
+          🤖
+        </div>
+        <div style="background:var(--card2);border:1px solid var(--border);
+                    border-radius:0 12px 12px 12px;padding:12px 16px;max-width:88%">
+          <div style="font-size:.82rem;color:var(--text);line-height:1.55">
+            👋 Bonjour ! Je suis ton assistant IA <strong style="color:var(--gold)">Pro+</strong>.<br><br>
+            J'ai accès à <strong>tes données internes</strong> (transactions, clients, bénéfices)
+            <em>et</em> à la <strong style="color:var(--blue)">🌐 recherche web</strong> pour les
+            questions externes (trading, business, marketing, investissement).<br><br>
+            <strong>Pose-moi n'importe quelle question !</strong>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:.62rem;padding:2px 8px;border-radius:20px;
+                         background:rgba(14,240,192,.1);color:var(--teal)">
+              📊 Tes données
+            </span>
+            <span style="font-size:.62rem;padding:2px 8px;border-radius:20px;
+                         background:rgba(79,142,247,.1);color:var(--blue)">
+              🌐 Web search
+            </span>
+            <span style="font-size:.62rem;padding:2px 8px;border-radius:20px;
+                         background:rgba(240,192,64,.1);color:var(--gold)">
+              💼 Business
+            </span>
+            <span style="font-size:.62rem;padding:2px 8px;border-radius:20px;
+                         background:rgba(139,92,246,.1);color:var(--violet2)">
+              📈 Trading
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historique -->
+      {% for msg in history %}
+      {% if msg.role == 'user' %}
+      <div style="display:flex;justify-content:flex-end">
+        <div style="background:linear-gradient(135deg,var(--blue),var(--violet));
+                    border-radius:12px 0 12px 12px;padding:11px 15px;max-width:76%">
+          <div style="font-size:.82rem;color:#fff;line-height:1.45">{{ msg.content }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="width:30px;height:30px;border-radius:9px;flex-shrink:0;
+                    background:linear-gradient(135deg,var(--gold),var(--violet));
+                    display:flex;align-items:center;justify-content:center;font-size:.8rem">
+          🤖
+        </div>
+        <div style="background:var(--card2);border:1px solid var(--border);
+                    border-radius:0 12px 12px 12px;padding:12px 16px;max-width:88%">
+          <div class="ai-msg" style="font-size:.82rem;color:var(--text);line-height:1.55">
+            {{ msg.content }}
+          </div>
+          {% if '🌐' in msg.content %}
+          <div style="margin-top:6px;font-size:.62rem;color:var(--blue);
+                      font-family:var(--mono)">🌐 Réponse avec données web</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+
+      <!-- Typing indicator -->
+      <div id="typing-indicator"
+           style="display:none;align-items:flex-start;gap:10px">
+        <div style="width:30px;height:30px;border-radius:9px;flex-shrink:0;
+                    background:linear-gradient(135deg,var(--gold),var(--violet));
+                    display:flex;align-items:center;justify-content:center;font-size:.8rem">
+          🤖
+        </div>
+        <div style="background:var(--card2);border:1px solid var(--border);
+                    border-radius:0 12px 12px 12px;padding:14px 18px">
+          <div id="typing-text"
+               style="font-size:.75rem;color:var(--muted);font-family:var(--mono);
+                      margin-bottom:8px">
+            Analyse en cours...
+          </div>
+          <div style="display:flex;gap:5px;align-items:center">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--muted);
+                         animation:typing 1.2s ease infinite"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--muted);
+                         animation:typing 1.2s ease .2s infinite"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--muted);
+                         animation:typing 1.2s ease .4s infinite"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Zone de saisie -->
+    <div style="padding:14px 18px;border-top:1px solid var(--border);
+                flex-shrink:0;background:var(--card)">
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <div style="flex:1;background:var(--bg2);border:1px solid var(--border2);
+                    border-radius:12px;padding:2px;transition:border .15s"
+             id="input-wrap">
+          <textarea id="chat-input"
+                    placeholder="Pose ta question... trading, business, tes données, marketing..."
+                    rows="1"
+                    style="width:100%;background:transparent;border:none;outline:none;
+                           padding:10px 14px;color:var(--text);font-size:.84rem;
+                           font-family:var(--font);resize:none;max-height:120px;
+                           line-height:1.4"
+                    oninput="autoResize(this);detectType(this.value)"
+                    onkeydown="handleKey(event)"></textarea>
+        </div>
+        <button id="send-btn" onclick="sendMessage()"
+                style="width:44px;height:44px;border-radius:12px;border:none;
+                       background:linear-gradient(135deg,var(--gold),#c97800);
+                       color:#050300;font-size:1.1rem;cursor:pointer;
+                       display:flex;align-items:center;justify-content:center;
+                       transition:all .15s;flex-shrink:0">➤</button>
+      </div>
+      <div style="margin-top:6px;display:flex;justify-content:space-between;
+                  align-items:center">
+        <div id="query-type" style="font-size:.65rem;color:var(--muted);
+                                     font-family:var(--mono)">
+          Entrée = envoyer · Shift+Entrée = nouvelle ligne
+        </div>
+        <span id="char-count" style="font-size:.65rem;color:var(--muted);
+                                      font-family:var(--mono)">0/1000</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PANNEAU DROIT ═══ -->
+  <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto">
+
+    <!-- Questions suggérées -->
+    <div class="card">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:.82rem;font-weight:600;color:var(--text)">
+          💡 Questions suggérées
+        </div>
+      </div>
+      <div style="padding:8px 10px 10px" id="suggested-questions">
+        {% for q, icon in [
+          ('Quel est mon client le plus rentable ?', '📊'),
+          ('Comment augmenter mes ventes ?', '📈'),
+          ('Propose une stratégie trading rentable', '💹'),
+          ('Quel business est rentable en 2026 ?', '🚀'),
+          ('Comment investir 500 000 FCFA ?', '💰'),
+          ('Quelle stratégie marketing fonctionne ?', '📣'),
+          ('Pourquoi mes bénéfices baissent ?', '📉'),
+          ('Quelle niche business est en croissance ?', '🌱'),
+          ('Comment réduire mes frais ?', '💸'),
+          ('Analyse mes transactions déficitaires', '⚠️'),
+        ] %}
+        <button onclick="useQuestion(this.dataset.q)"
+                data-q="{{ q }}"
+                style="display:flex;align-items:center;gap:6px;width:100%;text-align:left;
+                       background:var(--card2);border:1px solid var(--border);
+                       border-radius:8px;padding:7px 10px;margin-bottom:5px;
+                       color:var(--muted2);font-size:.74rem;cursor:pointer;
+                       transition:all .14s;font-family:var(--font)"
+                onmouseenter="this.style.borderColor='var(--gold)';this.style.color='var(--text)'"
+                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--muted2)'">
+          <span>{{ icon }}</span>
+          <span>{{ q }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Sources disponibles -->
+    <div class="card">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:.82rem;font-weight:600;color:var(--text)">
+          🔌 Sources disponibles
+        </div>
+      </div>
+      <div style="padding:10px 16px 14px">
+        {% for icon, label, color, desc in [
+          ('📊', 'Données internes', 'var(--teal)',   'Transactions, clients, bénéfices'),
+          ('🌐', 'Recherche web',   'var(--blue)',   'Trading, business, marketing'),
+          ('🧠', 'IA générale',     'var(--violet2)','Stratégie, conseils, finance'),
+        ] %}
+        <div style="display:flex;align-items:flex-start;gap:10px;
+                    padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;
+                      background:{{ color }}15;display:flex;align-items:center;
+                      justify-content:center;font-size:.9rem">{{ icon }}</div>
+          <div>
+            <div style="font-size:.76rem;font-weight:600;color:{{ color }}">{{ label }}</div>
+            <div style="font-size:.68rem;color:var(--muted2);margin-top:1px">{{ desc }}</div>
+          </div>
+          <span style="margin-left:auto;color:var(--success);font-size:.75rem">✓</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Types de questions -->
+    <div class="card">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:.82rem;font-weight:600;color:var(--text)">
+          🎯 Domaines couverts
+        </div>
+      </div>
+      <div style="padding:10px 14px">
+        {% for cat, color, items in [
+          ('Tes données', 'var(--teal)', ['Clients rentables', 'Bénéfices & marges', 'Analyse transactions']),
+          ('Business', 'var(--blue)', ['Niches rentables 2026', 'Idées business Cameroun', 'E-commerce & digital']),
+          ('Trading', 'var(--gold)', ['Forex & crypto', 'Stratégies d\'entrée', 'Gestion du risque']),
+          ('Marketing', 'var(--violet2)', ['TikTok & Réseaux', 'WhatsApp Business', 'Facebook Ads']),
+          ('Finance', 'var(--orange)', ['Investissement', 'Épargne & placement', 'Gestion du capital']),
+        ] %}
+        <div style="margin-bottom:12px">
+          <div style="font-size:.68rem;font-weight:700;color:{{ color }};
+                      text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">
+            {{ cat }}
+          </div>
+          {% for item in items %}
+          <div style="font-size:.72rem;color:var(--muted2);padding:2px 0;
+                      padding-left:10px;border-left:2px solid {{ color }}30">
+            {{ item }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+@keyframes typing {
+  0%,60%,100% { opacity:.3; transform:translateY(0); }
+  30% { opacity:1; transform:translateY(-4px); }
+}
+.ai-msg strong { color: var(--gold); }
+.ai-msg em     { color: var(--teal); font-style: normal; }
+
+/* Mots-clés web = bleu dans l'input */
+#input-wrap.is-web  { border-color: rgba(79,142,247,.4) !important; }
+#input-wrap.is-data { border-color: rgba(14,240,192,.4) !important; }
+</style>
+
+<script>
+const SEND_URL  = "{{ url_for('ai.chat_send') }}";
+const CLEAR_URL = "{{ url_for('ai.chat_clear') }}";
+let isTyping    = false;
+
+// Mots-clés pour détecter le type de question côté client
+const WEB_KW  = ["trading","forex","crypto","bitcoin","investir","business en","niche",
+                  "marketing","tiktok","instagram","bourse","investissement","épargne",
+                  "stratégie trading","500 000","actuali","tendance","njangi"];
+const DATA_KW = ["mon","mes","ma","mes clients","mon bénéfice","mes ventes",
+                 "meilleur client","mes frais","ce mois","aujourd'hui"];
+
+function detectType(val) {
+  const v = val.toLowerCase();
+  const wrap = document.getElementById('input-wrap');
+  const qt   = document.getElementById('query-type');
+  const wi   = document.getElementById('web-indicator');
+
+  if (WEB_KW.some(k => v.includes(k))) {
+    wrap.className = 'is-web';
+    qt.innerHTML   = '🌐 <span style="color:var(--blue)">Recherche web sera utilisée</span>';
+    qt.style.color = 'var(--blue)';
+    wi.style.display = 'flex';
+  } else if (DATA_KW.some(k => v.includes(k))) {
+    wrap.className = 'is-data';
+    qt.innerHTML   = '📊 <span style="color:var(--teal)">Analyse de tes données</span>';
+    qt.style.color = 'var(--teal)';
+    wi.style.display = 'none';
+  } else {
+    wrap.className = '';
+    qt.innerHTML   = 'Entrée = envoyer · Shift+Entrée = nouvelle ligne';
+    qt.style.color = 'var(--muted)';
+    wi.style.display = 'none';
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  document.getElementById('char-count').textContent = el.value.length + '/1000';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function useQuestion(q) {
+  const input = document.getElementById('chat-input');
+  input.value = q;
+  autoResize(input);
+  detectType(q);
+  input.focus();
+}
+
+function addMessage(content, role, usedWeb) {
+  const container = document.getElementById('chat-messages');
+  const wrap      = document.createElement('div');
+
+  if (role === 'user') {
+    wrap.innerHTML = `
+      <div style="display:flex;justify-content:flex-end">
+        <div style="background:linear-gradient(135deg,var(--blue),var(--violet));
+                    border-radius:12px 0 12px 12px;padding:11px 15px;max-width:76%">
+          <div style="font-size:.82rem;color:#fff;line-height:1.45">${escHtml(content)}</div>
+        </div>
+      </div>`;
+  } else {
+    const webTag = usedWeb
+      ? `<div style="margin-top:6px;font-size:.62rem;color:var(--blue);font-family:var(--mono)">
+           🌐 Réponse enrichie avec données web
+         </div>` : '';
+    wrap.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="width:30px;height:30px;border-radius:9px;flex-shrink:0;
+                    background:linear-gradient(135deg,var(--gold),var(--violet));
+                    display:flex;align-items:center;justify-content:center;font-size:.8rem">🤖</div>
+        <div style="background:var(--card2);border:1px solid var(--border);
+                    border-radius:0 12px 12px 12px;padding:12px 16px;max-width:88%">
+          <div class="ai-msg" style="font-size:.82rem;color:var(--text);line-height:1.55">
+            ${fmtAI(content)}
+          </div>
+          ${webTag}
+        </div>
+      </div>`;
+  }
+  container.insertBefore(wrap, document.getElementById('typing-indicator'));
+  scrollBottom();
+}
+
+function fmtAI(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/\n\n/g,'<br><br>')
+    .replace(/\n/g,'<br>')
+    .replace(/•\s/g,'<span style="color:var(--gold)">•</span> ');
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const msg   = input.value.trim();
+  if (!msg || isTyping) return;
+  if (msg.length > 1000) { alert('Message trop long.'); return; }
+
+  addMessage(msg, 'user', false);
+  input.value = '';
+  autoResize(input);
+  detectType('');
+
+  // Détecter si web search sera utilisé
+  const webKw = ["trading","forex","crypto","bitcoin","investir","business en",
+                  "niche","marketing","bourse","investissement","épargne",
+                  "stratégie trading","500 000","tendance","njangi"];
+  const isWeb = webKw.some(k => msg.toLowerCase().includes(k));
+
+  // Afficher typing indicator avec message adapté
+  isTyping = true;
+  const typing = document.getElementById('typing-indicator');
+  typing.style.display = 'flex';
+  document.getElementById('typing-text').textContent = isWeb
+    ? '🌐 Recherche web en cours...'
+    : '📊 Analyse de tes données...';
+  scrollBottom();
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.style.opacity = '.4';
+
+  try {
+    const resp = await fetch(SEND_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message: msg })
+    });
+    typing.style.display = 'none';
+    const data = await resp.json();
+
+    if (resp.ok) {
+      const usedWeb = data.response && data.response.includes('🌐');
+      addMessage(data.response, 'assistant', usedWeb);
+    } else {
+      addMessage('❌ Erreur : ' + (data.error || 'Indisponible.'), 'assistant', false);
+    }
+  } catch(err) {
+    typing.style.display = 'none';
+    addMessage('❌ Connexion impossible. Vérifie ta connexion.', 'assistant', false);
+  }
+
+  isTyping = false;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+}
+
+async function clearChat() {
+  if (!confirm('Effacer toute la conversation ?')) return;
+  await fetch(CLEAR_URL, { method: 'POST' });
+  window.location.reload();
+}
+
+function scrollBottom() {
+  const c = document.getElementById('chat-messages');
+  setTimeout(() => c.scrollTop = c.scrollHeight, 60);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  scrollBottom();
+  document.getElementById('chat-input').focus();
+});
+</script>
+{% endblock %}

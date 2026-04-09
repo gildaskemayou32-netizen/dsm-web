@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_icon %}📊{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block page_sub %}{% endblock %}
+
+{% block content %}
+
+<!-- ══ KPI CARDS ══ -->
+<div class="kpi-grid">
+
+  <div class="kpi-card">
+    <div class="kpi-glow" style="background:var(--gold)"></div>
+    <div class="kpi-icon" style="background:rgba(240,192,64,.1)">💵</div>
+    <div class="kpi-label">Revenus Totaux</div>
+    <div class="kpi-val text-gold">{{ stats.total_recu|fmt_money }} <span class="unit">FCFA</span></div>
+    <div class="kpi-trend up">↑ {{ stats.total_transactions }} transactions au total</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-glow" style="background:var(--teal)"></div>
+    <div class="kpi-icon" style="background:rgba(14,240,192,.1)">📈</div>
+    <div class="kpi-label">Bénéfice Net</div>
+    <div class="kpi-val" style="color:var(--teal)">{{ stats.total_benefice|fmt_money }} <span class="unit">FCFA</span></div>
+    <div class="kpi-trend up">↑ Marge moy. {{ stats.marge_moy }}%</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-glow" style="background:var(--red)"></div>
+    <div class="kpi-icon" style="background:rgba(240,80,74,.1)">🚚</div>
+    <div class="kpi-label">Total Frais</div>
+    <div class="kpi-val text-danger">{{ stats.total_frais|fmt_money }} <span class="unit">FCFA</span></div>
+    <div class="kpi-trend {% if stats.alertes %}down{% else %}up{% endif %}">
+      {% if stats.alertes %}⚠ {{ stats.alertes }} alerte(s) déficit{% else %}✓ Aucun déficit{% endif %}
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-glow" style="background:var(--violet)"></div>
+    <div class="kpi-icon" style="background:rgba(139,92,246,.1)">👥</div>
+    <div class="kpi-label">Clients Actifs</div>
+    <div class="kpi-val text-violet">{{ stats.clients_count }} <span class="unit">clients</span></div>
+    <div class="kpi-trend up">⭐ {{ stats.meilleur_client }}</div>
+  </div>
+
+</div>
+
+<!-- ══ GRAPHIQUES ══ -->
+<div class="charts-row">
+
+  <!-- Courbe revenus / bénéfices -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">📊 Évolution Revenus &amp; Bénéfices</div>
+        <div class="card-sub">// 12 derniers mois · FCFA (K)</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-ghost btn-sm" onclick="setRange(6)">6M</button>
+        <button class="btn btn-ghost btn-sm" onclick="setRange(12)" id="btn-1a" style="border-color:var(--gold);color:var(--gold)">1A</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Donut frais -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">🎯 Répartition des frais</div>
+        <div class="card-sub">// Transport vs Autres</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap" style="height:160px">
+        <canvas id="donutChart"></canvas>
+      </div>
+    </div>
+    {% set total_f = frais.transport + frais.autres %}
+    <div class="donut-legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--blue)"></div>
+        <span class="legend-label">Transport</span>
+        <span class="legend-val">{{ frais.transport|fmt_money }}</span>
+        <span class="legend-pct">{{ "%.0f%%"|format(frais.transport/total_f*100) if total_f > 0 else "—" }}</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--violet)"></div>
+        <span class="legend-label">Autres dép.</span>
+        <span class="legend-val">{{ frais.autres|fmt_money }}</span>
+        <span class="legend-pct">{{ "%.0f%%"|format(frais.autres/total_f*100) if total_f > 0 else "—" }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TABLEAU + ACTIVITÉ ══ -->
+<div class="bottom-row">
+
+  <!-- Transactions récentes -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Transactions récentes</div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('transactions.index') }}" class="btn btn-ghost btn-sm">📊 Voir tout</a>
+        <a href="{{ url_for('transactions.add') }}"   class="btn btn-primary btn-sm">➕ Ajouter</a>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th class="r">Reçu</th>
+            <th class="r">Frais</th>
+            <th class="r">Bénéfice</th>
+            <th class="r">Marge</th>
+            <th class="c">Statut</th>
+            <th class="c">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in recent %}
+          <tr onclick="location.href='{{ url_for('transactions.edit', tid=t.id) }}'">
+            <td>
+              <div class="client-cell">
+                <div class="avatar" style="background:{{ t.client|av_color }};color:#060c14">
+                  {{ t.client|initials }}
+                </div>
+                <div>
+                  <div class="client-name">{{ t.client }}</div>
+                  <div class="client-id">#CLT-{{ "%04d"|format(t.id) }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="r text-blue text-mono">{{ t.montant_recu|fmt_money }}</td>
+            <td class="r text-muted2 text-mono">{{ t.total_frais|fmt_money }}</td>
+            <td class="r text-mono {% if t.benefice >= 0 %}pos{% else %}neg{% endif %}">{{ t.benefice|fmt_money }}</td>
+            <td class="r text-mono" style="color:{% if t.marge >= 50 %}var(--teal){% else %}var(--warn){% endif %}">{{ t.marge }}%</td>
+            <td class="c">
+              {% if t.statut == 'soldé' %}<span class="badge badge-solde">✓ Soldé</span>
+              {% elif t.statut == 'partiel' %}<span class="badge badge-partiel">⏳ Partiel</span>
+              {% else %}<span class="badge badge-deficit">✗ Déficit</span>{% endif %}
+            </td>
+            <td class="c text-muted text-mono text-sm">{{ t.date }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Panel droit -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <!-- Activité -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔴 Activité en direct</div>
+      </div>
+      <div class="card-body" style="padding:10px 16px">
+        {% for t in recent[:5] %}
+        <div class="act-item">
+          <div class="act-dot" style="background:{% if t.statut=='soldé' %}var(--success){% elif t.statut=='partiel' %}var(--warn){% else %}var(--danger){% endif %}"></div>
+          <div>
+            <div class="act-text"><strong>{{ t.client }}</strong> — {{ t.montant_recu|fmt_money }} FCFA</div>
+            <div class="act-time">Bénéfice : {{ t.benefice|fmt_money }} · {{ t.date }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Top clients -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🏆 Top Clients</div>
+      </div>
+      <div class="card-body">
+        {% set max_ben = clients[0].total_ben if clients else 1 %}
+        {% set palette = ['var(--gold)','var(--teal)','var(--blue)','var(--violet)','var(--orange)'] %}
+        {% for c in clients[:5] %}
+        <div class="tc-item">
+          <div class="tc-name">{{ c.client.split()[0] }}</div>
+          <div class="tc-bar-bg">
+            <div class="tc-bar" style="width:{{ [(c.total_ben/max_ben*100)|round|int, 0]|max if max_ben > 0 else 0 }}%;
+              background:{{ palette[loop.index0 % palette|length] }}"></div>
+          </div>
+          <div class="tc-val">{{ c.total_ben|fmt_short }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ STATS SECONDAIRES ══ -->
+<div class="sec-row">
+  <div class="card">
+    <div style="height:2px;background:var(--blue)"></div>
+    <div style="padding:14px 18px">
+      <div style="font-size:.72rem;color:var(--muted2);margin-bottom:6px">📅 Bénéfice du jour</div>
+      <div style="font-size:1.1rem;font-weight:700;color:{% if stats.benefice_jour >= 0 %}var(--success){% else %}var(--danger){% endif %}">
+        {{ stats.benefice_jour|fmt_money }} FCFA
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="height:2px;background:var(--teal)"></div>
+    <div style="padding:14px 18px">
+      <div style="font-size:.72rem;color:var(--muted2);margin-bottom:6px">📆 Bénéfice ce mois</div>
+      <div style="font-size:1.1rem;font-weight:700;color:{% if stats.benefice_mois >= 0 %}var(--teal){% else %}var(--danger){% endif %}">
+        {{ stats.benefice_mois|fmt_money }} FCFA
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="height:2px;background:var(--gold)"></div>
+    <div style="padding:14px 18px">
+      <div style="font-size:.72rem;color:var(--muted2);margin-bottom:6px">⭐ Meilleur client</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gold)">{{ stats.meilleur_client }}</div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="height:2px;background:var(--violet2)"></div>
+    <div style="padding:14px 18px">
+      <div style="font-size:.72rem;color:var(--muted2);margin-bottom:6px">🎯 Marge moyenne</div>
+      <div style="font-size:1.1rem;font-weight:700;color:{% if stats.marge_moy >= 50 %}var(--success){% else %}var(--warn){% endif %}">
+        {{ stats.marge_moy }}%
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MONTHLY = {{ monthly | tojson }};
+const FRAIS   = {{ frais   | tojson }};
+
+// ── Courbe ──────────────────────────────────────────────────────────────────
+const lineCtx = document.getElementById('lineChart').getContext('2d');
+let lineChart;
+
+function buildLine(data) {
+  const g1 = lineCtx.createLinearGradient(0,0,0,200);
+  g1.addColorStop(0,'rgba(240,192,64,.18)'); g1.addColorStop(1,'rgba(240,192,64,0)');
+  const g2 = lineCtx.createLinearGradient(0,0,0,200);
+  g2.addColorStop(0,'rgba(14,240,192,.14)'); g2.addColorStop(1,'rgba(14,240,192,0)');
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(lineCtx, {
+    type:'line',
+    data:{ labels:data.map(d=>d.label), datasets:[
+      {label:'Revenus (K)',  data:data.map(d=>d.revenus/1000),  borderColor:'#f0c040',
+       backgroundColor:g1, borderWidth:2, pointRadius:3, fill:true, tension:.4},
+      {label:'Bénéfice (K)',data:data.map(d=>d.benefice/1000), borderColor:'#0ef0c0',
+       backgroundColor:g2, borderWidth:2, pointRadius:3, fill:true, tension:.4},
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{color:'#8490b0',font:{size:11},boxWidth:12,padding:14}},
+        tooltip:{backgroundColor:'#0f1424',borderColor:'rgba(255,255,255,.08)',borderWidth:1,
+          titleColor:'#dde3f5',bodyColor:'#8490b0',
+          callbacks:{label:c=>`  ${c.dataset.label}: ${c.raw.toFixed(0)}K FCFA`}}
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#606a8c',font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#606a8c',font:{size:10},callback:v=>`${v.toFixed(0)}K`}}
+      }
+    }
+  });
+}
+buildLine(MONTHLY);
+
+function setRange(n) {
+  fetch(`/api/monthly?months=${n}`)
+    .then(r=>r.json()).then(buildLine);
+}
+
+// ── Donut ────────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('donutChart'), {
+  type:'doughnut',
+  data:{labels:['Transport','Autres'],datasets:[{
+    data:[FRAIS.transport,FRAIS.autres],
+    backgroundColor:['#4f8ef7','#8b5cf6'],
+    borderColor:'#0f1424',borderWidth:3,hoverOffset:6
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'72%',
+    plugins:{legend:{display:false},
+      tooltip:{backgroundColor:'#0f1424',borderColor:'rgba(255,255,255,.08)',borderWidth:1,
+        titleColor:'#dde3f5',bodyColor:'#8490b0',
+        callbacks:{label:c=>`  ${c.label}: ${(c.raw/1000).toFixed(0)}K FCFA`}}}}
+});
+</script>
+{% endblock %}

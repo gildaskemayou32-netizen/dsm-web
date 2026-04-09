@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block page_icon %}👥{% endblock %}
+{% block page_title %}Clients{% endblock %}
+{% block page_sub %}/ {{ clients|length }} clients actifs{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-center justify-between mb-3" style="gap:12px;flex-wrap:wrap">
+  <div></div>
+  <div class="d-flex align-center gap-2">
+    <span style="color:var(--muted)">🔍</span>
+    <input type="text" id="client-search" placeholder="Rechercher un client..."
+           class="form-control" style="height:34px;width:220px"
+           oninput="filterClients(this.value)">
+  </div>
+</div>
+
+<div id="clients-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+  {% for c in clients %}
+  <a href="{{ url_for('clients.detail', client_name=c.client) }}"
+     class="card client-card"
+     style="text-decoration:none;display:block;transition:all .18s"
+     data-name="{{ c.client|lower }}">
+
+    <div style="height:3px;background:{{ c.client|av_color }};border-radius:14px 14px 0 0"></div>
+
+    <div style="padding:18px 20px">
+      <div class="d-flex align-center gap-3" style="margin-bottom:14px">
+        <div class="avatar" style="background:{{ c.client|av_color }};color:#060c14;width:44px;height:44px;border-radius:12px;font-size:.85rem">
+          {{ c.client|initials }}
+        </div>
+        <div>
+          <div style="font-size:.92rem;font-weight:700;color:var(--text)">{{ c.client }}</div>
+          <div style="font-size:.68rem;color:var(--muted);font-family:var(--mono)">
+            {{ c.transactions }} transaction(s) · {{ c.derniere }}
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:var(--card2);border-radius:8px;padding:10px">
+          <div style="font-size:.62rem;color:var(--muted);font-family:var(--mono)">Total reçu</div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--blue);margin-top:3px">{{ c.total_recu|fmt_money }}</div>
+        </div>
+        <div style="background:var(--card2);border-radius:8px;padding:10px">
+          <div style="font-size:.62rem;color:var(--muted);font-family:var(--mono)">Bénéfice net</div>
+          <div style="font-size:.88rem;font-weight:700;margin-top:3px;color:{% if c.total_ben >= 0 %}var(--teal){% else %}var(--danger){% endif %}">
+            {{ c.total_ben|fmt_money }}
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="d-flex align-center justify-between" style="margin-bottom:5px">
+          <span style="font-size:.68rem;color:var(--muted2)">Marge moyenne</span>
+          <span style="font-size:.72rem;font-weight:700;font-family:var(--mono);
+            color:{% if c.marge_moy >= 50 %}var(--teal){% else %}var(--warn){% endif %}">
+            {{ c.marge_moy }}%
+          </span>
+        </div>
+        <div style="height:4px;background:var(--hover);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:{{ [c.marge_moy, 0]|max }}%;
+            background:linear-gradient(90deg,{% if c.marge_moy >= 50 %}var(--teal),var(--blue){% else %}var(--warn),var(--orange){% endif %});
+            border-radius:2px"></div>
+        </div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+
+  {% if not clients %}
+  <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)">
+    Aucun client.
+    <a href="{{ url_for('transactions.add') }}" style="color:var(--gold);display:block;margin-top:8px">➕ Ajouter une transaction →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterClients(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.client-card').forEach(c => {
+    c.style.display = c.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+document.querySelectorAll('.client-card').forEach(c => {
+  c.addEventListener('mouseenter', () => {
+    c.style.transform = 'translateY(-3px)';
+    c.style.boxShadow = '0 8px 30px rgba(0,0,0,.4)';
+  });
+  c.addEventListener('mouseleave', () => {
+    c.style.transform = '';
+    c.style.boxShadow = '';
+  });
+});
+</script>
+{% endblock %}

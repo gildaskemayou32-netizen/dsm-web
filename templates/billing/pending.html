@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}En attente de paiement{% endblock %}
+{% block page_icon %}⏳{% endblock %}
+{% block page_title %}Paiement en cours{% endblock %}
+{% block page_sub %}/ Confirmation en attente{% endblock %}
+
+{% block content %}
+<div style="max-width:500px;margin:40px auto;text-align:center">
+  <div class="card">
+    <div style="padding:40px 30px">
+      <div style="font-size:3.5rem;margin-bottom:16px" id="status-icon">⏳</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:8px" id="status-title">
+        En attente de confirmation
+      </div>
+      <div style="font-size:.82rem;color:var(--muted2);margin-bottom:24px" id="status-msg">
+        {% if pay.method in ['mtn_momo','orange'] %}
+        📱 Vérifiez votre téléphone ({{ pay.phone }}) et confirmez le paiement.
+        {% elif pay.method == 'visa' %}
+        💳 Votre paiement par carte est en cours de traitement.
+        {% endif %}
+      </div>
+
+      <!-- Infos paiement -->
+      <div style="background:var(--card2);border-radius:10px;padding:16px;margin-bottom:24px;text-align:left">
+        {% for label, val in [
+          ('Plan', plan_info.icon + ' ' + plan_info.name),
+          ('Montant', "{:,}".format(pay.amount|int).replace(",", " ") + ' FCFA'),
+          ('Méthode', pay.method.replace('_',' ').title()),
+          ('Référence', pay.reference or '—'),
+        ] %}
+        <div style="display:flex;justify-content:space-between;padding:6px 0;
+                    border-bottom:1px solid var(--border)">
+          <span style="font-size:.78rem;color:var(--muted2)">{{ label }}</span>
+          <span style="font-size:.78rem;font-weight:600;font-family:var(--mono)">{{ val }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Bouton confirmer (démo / test) -->
+      <form method="POST" action="{{ url_for('billing.confirm', payment_id=pay.id) }}">
+        <button type="submit" class="btn btn-primary"
+                style="width:100%;justify-content:center;height:44px;margin-bottom:12px">
+          ✅ Confirmer le paiement
+        </button>
+      </form>
+
+      <a href="{{ url_for('billing.pricing') }}"
+         style="font-size:.78rem;color:var(--muted)">Annuler</a>
+
+      <div style="margin-top:20px;padding:12px;background:rgba(14,240,192,.06);
+                  border-radius:8px;font-size:.72rem;color:var(--muted2)">
+        💡 En production, la confirmation se fait automatiquement via webhook.
+        Le bouton ci-dessus est pour les tests.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

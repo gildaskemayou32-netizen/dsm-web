@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Alertes{% endblock %}
+{% block page_icon %}🔔{% endblock %}
+{% block page_title %}Alertes{% endblock %}
+{% block page_sub %}/ {{ deficits|length + low_margin|length }} alerte(s) active(s){% endblock %}
+
+{% block content %}
+
+<!-- Résumé alertes -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+
+  <div class="card" style="border-color:{% if deficits %}rgba(240,80,74,.3){% else %}var(--border){% endif %}">
+    <div style="height:2px;background:var(--danger)"></div>
+    <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:2rem">🚨</div>
+      <div>
+        <div style="font-size:.72rem;color:var(--muted2);font-family:var(--mono)">TRANSACTIONS DÉFICIT</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--danger)">{{ deficits|length }}</div>
+        <div style="font-size:.72rem;color:var(--muted)">Bénéfice négatif</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:{% if low_margin %}rgba(245,158,11,.3){% else %}var(--border){% endif %}">
+    <div style="height:2px;background:var(--warn)"></div>
+    <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:2rem">⚠️</div>
+      <div>
+        <div style="font-size:.72rem;color:var(--muted2);font-family:var(--mono)">MARGE FAIBLE &lt; 20%</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--warn)">{{ low_margin|length }}</div>
+        <div style="font-size:.72rem;color:var(--muted)">Attention requise</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="height:2px;background:var(--blue)"></div>
+    <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:2rem">📅</div>
+      <div>
+        <div style="font-size:.72rem;color:var(--muted2);font-family:var(--mono)">CE MOIS</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--blue)">{{ ce_mois|length }}</div>
+        <div style="font-size:.72rem;color:var(--muted)">Transactions</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% if not deficits and not low_margin %}
+<!-- Tout va bien -->
+<div class="card" style="text-align:center;padding:60px 20px;border-color:rgba(16,224,128,.2)">
+  <div style="font-size:3rem;margin-bottom:12px">✅</div>
+  <div style="font-size:1.1rem;font-weight:700;color:var(--success);margin-bottom:8px">Tout va bien !</div>
+  <div style="color:var(--muted);font-size:.85rem">Aucune transaction en déficit ni marge critique détectée.</div>
+</div>
+{% endif %}
+
+<!-- Déficits -->
+{% if deficits %}
+<div class="card" style="margin-bottom:16px;border-color:rgba(240,80,74,.2)">
+  <div class="card-header" style="border-color:rgba(240,80,74,.15)">
+    <div>
+      <div class="card-title" style="color:var(--danger)">🚨 Transactions en déficit</div>
+      <div class="card-sub">// Bénéfice négatif — action recommandée</div>
+    </div>
+    <span class="badge badge-deficit">{{ deficits|length }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th class="r">Reçu (FCFA)</th>
+          <th class="r">Frais</th>
+          <th class="r">Perte</th>
+          <th class="r">Marge</th>
+          <th class="c">Date</th>
+          <th class="c">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in deficits %}
+        <tr>
+          <td>
+            <div class="client-cell">
+              <div class="avatar" style="background:{{ t.client|av_color }};color:#060c14">{{ t.client|initials }}</div>
+              <div>
+                <div class="client-name">{{ t.client }}</div>
+                <div class="client-id">#CLT-{{ "%04d"|format(t.id) }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="r text-mono">{{ t.montant_recu|fmt_money }}</td>
+          <td class="r text-mono text-muted2">{{ t.total_frais|fmt_money }}</td>
+          <td class="r text-mono neg">{{ t.benefice|fmt_money }}</td>
+          <td class="r text-mono" style="color:var(--danger)">{{ t.marge }}%</td>
+          <td class="c text-muted text-mono text-sm">{{ t.date }}</td>
+          <td class="c">
+            <a href="{{ url_for('transactions.edit', tid=t.id) }}" class="btn btn-ghost btn-sm">✏️ Corriger</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Marge faible -->
+{% if low_margin %}
+<div class="card" style="margin-bottom:16px;border-color:rgba(245,158,11,.2)">
+  <div class="card-header" style="border-color:rgba(245,158,11,.15)">
+    <div>
+      <div class="card-title" style="color:var(--warn)">⚠️ Marge faible (&lt; 20%)</div>
+      <div class="card-sub">// Ces transactions méritent une attention</div>
+    </div>
+    <span class="badge badge-partiel">{{ low_margin|length }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th class="r">Reçu (FCFA)</th>
+          <th class="r">Frais</th>
+          <th class="r">Bénéfice</th>
+          <th class="r">Marge</th>
+          <th class="c">Date</th>
+          <th class="c">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in low_margin %}
+        <tr>
+          <td>
+            <div class="client-cell">
+              <div class="avatar" style="background:{{ t.client|av_color }};color:#060c14">{{ t.client|initials }}</div>
+              <div class="client-name">{{ t.client }}</div>
+            </div>
+          </td>
+          <td class="r text-mono">{{ t.montant_recu|fmt_money }}</td>
+          <td class="r text-mono text-muted2">{{ t.total_frais|fmt_money }}</td>
+          <td class="r text-mono pos">{{ t.benefice|fmt_money }}</td>
+          <td class="r text-mono" style="color:var(--warn)">{{ t.marge }}%</td>
+          <td class="c text-muted text-mono text-sm">{{ t.date }}</td>
+          <td class="c">
+            <a href="{{ url_for('transactions.edit', tid=t.id) }}" class="btn btn-ghost btn-sm">✏️</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Ce mois -->
+{% if ce_mois %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">📅 Transactions de ce mois</div>
+      <div class="card-sub">// Activité récente</div>
+    </div>
+    <span class="badge badge-blue">{{ ce_mois|length }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th class="r">Reçu</th>
+          <th class="r">Bénéfice</th>
+          <th class="r">Marge</th>
+          <th class="c">Statut</th>
+          <th class="c">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in ce_mois %}
+        <tr onclick="location.href='{{ url_for('transactions.edit', tid=t.id) }}'">
+          <td>
+            <div class="client-cell">
+              <div class="avatar" style="background:{{ t.client|av_color }};color:#060c14">{{ t.client|initials }}</div>
+              <div class="client-name">{{ t.client }}</div>
+            </div>
+          </td>
+          <td class="r text-mono text-blue">{{ t.montant_recu|fmt_money }}</td>
+          <td class="r text-mono {% if t.benefice >= 0 %}pos{% else %}neg{% endif %}">{{ t.benefice|fmt_money }}</td>
+          <td class="r text-mono" style="color:{% if t.marge >= 50 %}var(--teal){% else %}var(--warn){% endif %}">{{ t.marge }}%</td>
+          <td class="c">
+            {% if t.statut=='soldé' %}<span class="badge badge-solde">✓ Soldé</span>
+            {% elif t.statut=='partiel' %}<span class="badge badge-partiel">⏳ Partiel</span>
+            {% else %}<span class="badge badge-deficit">✗ Déficit</span>{% endif %}
+          </td>
+          <td class="c text-muted text-mono text-sm">{{ t.date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

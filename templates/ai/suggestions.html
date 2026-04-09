@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Suggestions Pro{% endblock %}
+{% block page_icon %}💡{% endblock %}
+{% block page_title %}Suggestions intelligentes{% endblock %}
+{% block page_sub %}/ Analyse automatique de tes données{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div style="background:linear-gradient(135deg,rgba(79,142,247,.12),rgba(139,92,246,.08));
+            border:1px solid rgba(79,142,247,.25);border-radius:14px;
+            padding:20px 24px;margin-bottom:24px;
+            display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div>
+    <div style="font-size:1rem;font-weight:700;color:var(--blue)">
+      💼 Plan Pro — Suggestions automatiques
+    </div>
+    <div style="font-size:.8rem;color:var(--muted2);margin-top:4px">
+      Analyse de tes données en temps réel · Mise à jour à chaque chargement
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <span style="font-size:.75rem;color:var(--muted);font-family:var(--mono)">
+      {{ suggestions|length }} suggestion(s) générée(s)
+    </span>
+    <a href="{{ url_for('ai.suggestions') }}" class="btn btn-ghost btn-sm">🔄 Actualiser</a>
+    {% if sub.plan != 'pro_plus' %}
+    <a href="{{ url_for('billing.pricing') }}" class="btn btn-primary btn-sm">
+      🚀 Passer au Pro+
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Différence Pro vs Pro+ -->
+{% if sub.plan == 'pro' %}
+<div style="background:rgba(240,192,64,.06);border:1px solid rgba(240,192,64,.2);
+            border-radius:12px;padding:14px 18px;margin-bottom:20px;
+            display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div style="font-size:.82rem;color:var(--muted2)">
+    💡 Tu es sur le plan <strong style="color:var(--blue)">Pro</strong> —
+    suggestions automatiques uniquement.<br>
+    Avec <strong style="color:var(--gold)">Pro+</strong>, tu peux
+    <strong>poser des questions librement</strong> à l'assistant IA et obtenir
+    des conseils personnalisés en temps réel.
+  </div>
+  <a href="{{ url_for('billing.checkout', plan='pro_plus') }}" class="btn btn-primary btn-sm">
+    🚀 Upgrader Pro+
+  </a>
+</div>
+{% endif %}
+
+<!-- Suggestions -->
+{% if suggestions %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px">
+  {% for s in suggestions %}
+
+  {% set type_styles = {
+    'danger':  ('rgba(240,80,74,.12)',  'rgba(240,80,74,.3)',   '#f0504a', '🔴'),
+    'warning': ('rgba(245,158,11,.1)',  'rgba(245,158,11,.25)', '#f59e0b', '🟡'),
+    'success': ('rgba(16,224,128,.08)', 'rgba(16,224,128,.2)',  '#10e080', '🟢'),
+    'info':    ('rgba(79,142,247,.08)', 'rgba(79,142,247,.2)',  '#4f8ef7', '🔵'),
+  } %}
+  {% set style = type_styles.get(s.type, type_styles['info']) %}
+
+  <div style="background:{{ style[0] }};border:1px solid {{ style[1] }};
+              border-radius:12px;padding:18px 20px;
+              transition:transform .18s,box-shadow .18s"
+       onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,.3)'"
+       onmouseleave="this.style.transform='';this.style.boxShadow=''">
+
+    <!-- Icône + Titre -->
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">
+      <span style="font-size:1.6rem;flex-shrink:0">{{ s.icon }}</span>
+      <div style="flex:1">
+        <div style="font-size:.88rem;font-weight:700;color:{{ style[2] }}">
+          {{ s.title }}
+        </div>
+        {% set priority_labels = {1:'🔴 Urgent', 2:'🟠 Important', 3:'🟡 À surveiller', 4:'🔵 Info', 5:'🟢 Positif'} %}
+        <div style="font-size:.65rem;color:var(--muted);font-family:var(--mono);margin-top:2px">
+          {{ priority_labels.get(s.priority, '') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Texte -->
+    <div style="font-size:.8rem;color:var(--muted2);line-height:1.5;margin-bottom:12px">
+      {{ s.text }}
+    </div>
+
+    <!-- Bouton action -->
+    {% if s.get('action') and s.get('action_url') %}
+    <a href="{{ s.action_url }}"
+       style="display:inline-flex;align-items:center;gap:6px;
+              padding:6px 14px;border-radius:7px;font-size:.75rem;font-weight:600;
+              background:{{ style[2] }}20;border:1px solid {{ style[2] }}40;
+              color:{{ style[2] }};text-decoration:none;transition:all .15s"
+       onmouseenter="this.style.background='{{ style[2] }}30'"
+       onmouseleave="this.style.background='{{ style[2] }}20'">
+      {{ s.action }} →
+    </a>
+    {% endif %}
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card" style="text-align:center;padding:60px 20px">
+  <div style="font-size:3rem;margin-bottom:12px">📊</div>
+  <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:8px">
+    Pas encore assez de données
+  </div>
+  <div style="font-size:.82rem;color:var(--muted2);margin-bottom:20px">
+    Ajoute au moins 5 transactions pour recevoir des suggestions personnalisées.
+  </div>
+  <a href="{{ url_for('transactions.add') }}" class="btn btn-primary">
+    ➕ Ajouter une transaction
+  </a>
+</div>
+{% endif %}
+
+<!-- Upgrade Pro+ call-to-action -->
+{% if sub.plan == 'pro' %}
+<div style="margin-top:28px;background:linear-gradient(135deg,var(--card),var(--card2));
+            border:1px solid rgba(240,192,64,.2);border-radius:16px;
+            padding:28px;text-align:center">
+  <div style="font-size:2rem;margin-bottom:10px">🤖</div>
+  <div style="font-size:1rem;font-weight:700;color:var(--gold);margin-bottom:8px">
+    Envie de poser des questions librement ?
+  </div>
+  <div style="font-size:.82rem;color:var(--muted2);max-width:500px;margin:0 auto 20px">
+    Avec le plan <strong style="color:var(--gold)">Pro+</strong>, tu as accès à un
+    <strong>assistant IA interactif</strong> qui connaît tes données et répond à
+    <strong>toutes tes questions</strong> — ventes, clients, stratégie, bénéfices.
+  </div>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    <a href="{{ url_for('billing.checkout', plan='pro_plus') }}" class="btn btn-primary">
+      🚀 Passer au Pro+ — 5 000 FCFA/mois
+    </a>
+    <a href="{{ url_for('billing.checkout', plan='pro_plus') }}?method=demo"
+       class="btn btn-ghost">
+      🎮 Essayer gratuitement (démo)
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

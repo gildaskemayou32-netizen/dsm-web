@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if mode=='edit' else 'Ajouter' }} Transaction{% endblock %}
+{% block page_icon %}{% if mode=='edit' %}✏️{% else %}➕{% endif %}{% endblock %}
+{% block page_title %}{{ 'Modifier la transaction' if mode=='edit' else 'Nouvelle transaction' }}{% endblock %}
+{% block page_sub %}/ {{ tx.client if tx else 'Formulaire' }}{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto">
+
+  <!-- Erreur -->
+  {% if error %}
+  <div class="flash flash-error" style="margin-bottom:20px">{{ error }}</div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">{{ '✏️ Modifier' if mode=='edit' else '➕ Nouvelle transaction' }}</div>
+        <div class="card-sub">// Remplis tous les champs obligatoires *</div>
+      </div>
+      <a href="{{ url_for('transactions.index') }}" class="btn btn-ghost btn-sm">← Retour</a>
+    </div>
+
+    <div class="card-body">
+      <form method="POST" id="tx-form">
+
+        <!-- Client -->
+        <div class="form-group">
+          <label class="form-label">👤 Nom du client *</label>
+          <input type="text" name="client" class="form-control"
+                 placeholder="Ex : Amina Mboyo"
+                 value="{{ tx.client if tx else '' }}"
+                 list="clients-list" required autofocus>
+          <datalist id="clients-list">
+            {% for c in clients_list|default([]) %}
+            <option value="{{ c }}">
+            {% endfor %}
+          </datalist>
+        </div>
+
+        <!-- Montants en grille -->
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">💵 Argent reçu (FCFA) *</label>
+            <input type="number" name="montant_recu" id="f-recu"
+                   class="form-control" placeholder="0" min="0" step="500"
+                   value="{{ tx.montant_recu if tx else '' }}"
+                   oninput="calcLive()" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">🚗 Transport (FCFA)</label>
+            <input type="number" name="transport" id="f-transport"
+                   class="form-control" placeholder="0" min="0" step="100"
+                   value="{{ tx.transport if tx else '0' }}"
+                   oninput="calcLive()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">📦 Autres frais (FCFA)</label>
+            <input type="number" name="autres" id="f-autres"
+                   class="form-control" placeholder="0" min="0" step="100"
+                   value="{{ tx.autres if tx else '0' }}"
+                   oninput="calcLive()">
+          </div>
+        </div>
+
+        <!-- Bénéfice live -->
+        <div class="benefice-preview mb-3" id="preview-box">
+          <div>
+            <div class="label">Bénéfice estimé</div>
+            <div style="font-size:.72rem;color:var(--muted);font-family:var(--mono)" id="preview-marge">Marge : —</div>
+          </div>
+          <div class="value" id="preview-val">—</div>
+        </div>
+
+        <!-- Date + Notes -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">📅 Date *</label>
+            <input type="date" name="date" class="form-control"
+                   value="{{ tx.date if tx else today }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">📝 Notes (optionnel)</label>
+            <input type="text" name="notes" class="form-control"
+                   placeholder="Remarque, référence..."
+                   value="{{ tx.notes if tx else '' }}">
+          </div>
+        </div>
+
+        <!-- Boutons -->
+        <div class="d-flex gap-3" style="margin-top:8px">
+          <a href="{{ url_for('transactions.index') }}"
+             class="btn btn-ghost" style="flex:1;justify-content:center;height:42px">
+            Annuler
+          </a>
+          <button type="submit" class="btn btn-primary"
+                  style="flex:2;justify-content:center;height:42px;font-size:.9rem">
+            💾 Enregistrer
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Historique si édition -->
+  {% if mode == 'edit' and tx %}
+  <div class="card" style="margin-top:16px">
+    <div class="card-header">
+      <div class="card-title">ℹ️ Informations</div>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:.8rem">
+        <div>
+          <span class="text-muted">ID :</span>
+          <span class="text-mono" style="margin-left:8px">#{{ tx.id }}</span>
+        </div>
+        <div>
+          <span class="text-muted">Statut actuel :</span>
+          <span style="margin-left:8px">
+            {% if tx.statut == 'soldé' %}<span class="badge badge-solde">✓ Soldé</span>
+            {% elif tx.statut == 'partiel' %}<span class="badge badge-partiel">⏳ Partiel</span>
+            {% else %}<span class="badge badge-deficit">✗ Déficit</span>{% endif %}
+          </span>
+        </div>
+        <div>
+          <span class="text-muted">Créé le :</span>
+          <span class="text-mono" style="margin-left:8px">{{ tx.created_at.strftime('%d/%m/%Y %H:%M') if tx.created_at else '—' }}</span>
+        </div>
+        <div>
+          <span class="text-muted">Modifié le :</span>
+          <span class="text-mono" style="margin-left:8px">{{ tx.updated_at.strftime('%d/%m/%Y %H:%M') if tx.updated_at else '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const today = "{{ today }}";
+
+function calcLive() {
+  const recu      = parseFloat(document.getElementById('f-recu').value)      || 0;
+  const transport = parseFloat(document.getElementById('f-transport').value) || 0;
+  const autres    = parseFloat(document.getElementById('f-autres').value)    || 0;
+  const ben       = recu - transport - autres;
+  const marge     = recu > 0 ? (ben / recu * 100).toFixed(1) : '—';
+
+  const valEl   = document.getElementById('preview-val');
+  const margeEl = document.getElementById('preview-marge');
+  const box     = document.getElementById('preview-box');
+
+  valEl.textContent   = ben.toLocaleString('fr-FR') + ' FCFA';
+  margeEl.textContent = `Marge : ${marge}%`;
+
+  if (ben > 0) {
+    valEl.style.color = 'var(--teal)';
+    box.style.background = 'rgba(14,240,192,.07)';
+    box.style.borderColor = 'rgba(14,240,192,.18)';
+  } else if (ben < 0) {
+    valEl.style.color = 'var(--danger)';
+    box.style.background = 'rgba(240,80,74,.07)';
+    box.style.borderColor = 'rgba(240,80,74,.18)';
+  } else {
+    valEl.style.color = 'var(--warn)';
+    box.style.background = 'rgba(245,158,11,.07)';
+    box.style.borderColor = 'rgba(245,158,11,.18)';
+  }
+}
+
+// Init au chargement
+window.addEventListener('DOMContentLoaded', calcLive);
+</script>
+{% endblock %}

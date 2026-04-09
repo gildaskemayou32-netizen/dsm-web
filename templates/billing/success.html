@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Paiement réussi{% endblock %}
+{% block page_icon %}🎉{% endblock %}
+{% block page_title %}Plan activé !{% endblock %}
+{% block page_sub %}/ Bienvenue dans le plan {{ plan_info.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:500px;margin:40px auto;text-align:center">
+  <div class="card" style="border-color:rgba(14,240,192,.3)">
+    <div style="height:4px;background:linear-gradient(90deg,var(--teal),var(--blue))"></div>
+    <div style="padding:40px 30px">
+      <div style="font-size:4rem;margin-bottom:16px">🎉</div>
+      <div style="font-size:1.3rem;font-weight:700;color:var(--success);margin-bottom:8px">
+        Plan {{ plan_info.name }} activé !
+      </div>
+      <div style="font-size:.85rem;color:var(--muted2);margin-bottom:28px">
+        Toutes les fonctionnalités {{ plan_info.name }} sont maintenant disponibles.
+      </div>
+
+      <!-- Features débloquées -->
+      <div style="background:var(--card2);border-radius:10px;padding:16px;margin-bottom:28px;text-align:left">
+        <div style="font-size:.72rem;color:var(--muted);font-family:var(--mono);margin-bottom:10px">
+          // Fonctionnalités débloquées
+        </div>
+        {% for icon, label, val in [
+          ('🧾','Transactions', plan_info.tx_limit|string + '/mois' if plan_info.tx_limit > 0 else 'Illimitées'),
+          ('👥','Utilisateurs', plan_info.users_limit|string if plan_info.users_limit > 0 else 'Illimités'),
+          ('📊','Export Excel', 'Débloqué' if plan_info.export else 'Non disponible'),
+          ('📈','Analytiques avancées', 'Débloquées' if plan_info.analytics else 'Non disponible'),
+          ('🔔','Alertes intelligentes', 'Activées' if plan_info.alerts else 'Non disponible'),
+        ] %}
+        <div style="display:flex;justify-content:space-between;padding:7px 0;
+                    border-bottom:1px solid var(--border)">
+          <span style="font-size:.8rem;color:var(--muted2)">{{ icon }} {{ label }}</span>
+          <span style="font-size:.8rem;font-weight:600;
+            color:{% if 'Illimit' in val or 'Débloqu' in val or 'Activ' in val %}var(--success){% else %}var(--muted){% endif %}">
+            {{ val }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary"
+         style="display:block;text-align:center;justify-content:center;
+                height:44px;font-size:.92rem;text-decoration:none;
+                line-height:44px">
+        🚀 Aller au Dashboard
+      </a>
+
+      <div style="margin-top:14px">
+        <a href="{{ url_for('billing.history') }}"
+           style="font-size:.78rem;color:var(--muted)">
+          📋 Voir l'historique des paiements
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

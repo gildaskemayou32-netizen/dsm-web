@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Digital Services CM{% endblock %} — Enterprise</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ═══ RAIL ICÔNES ═══ -->
+  <nav class="rail">
+    <a href="{{ url_for('dashboard.index') }}" class="rail-logo" title="Accueil">💰</a>
+    <div class="rail-sep"></div>
+
+    <!-- Navigation principale -->
+    {% set nav = [
+      ('dashboard.index',    '📊', 'Dashboard',    'dashboard'),
+      ('transactions.index', '🧾', 'Transactions', 'transactions'),
+      ('clients.index',      '👥', 'Clients',      'clients'),
+      ('analytics.index',    '📈', 'Analytiques',  'analytics'),
+    ] %}
+    {% for endpoint, icon, label, key in nav %}
+    <a href="{{ url_for(endpoint) }}"
+       class="rail-icon {% if active == key %}active{% endif %}">
+      {{ icon }}
+      <span class="rail-tooltip">{{ label }}</span>
+    </a>
+    {% endfor %}
+
+    <div class="rail-sep"></div>
+
+    <!-- Alertes avec badge -->
+    <a href="{{ url_for('billing.pricing') }}"
+       class="sb-item {% if active == 'billing' %}active{% endif %}"
+       style="color:var(--gold)">
+      💎&nbsp;&nbsp;Plans & Tarifs
+    </a>
+    <a href="{{ url_for('settings.alerts') }}"
+       class="rail-icon {% if active == 'alerts' %}active{% endif %}"
+       style="position:relative">
+      🔔
+      <span class="rail-tooltip">Alertes</span>
+      <span id="rail-alert-badge" style="
+        display:none;position:absolute;top:4px;right:4px;
+        background:var(--danger);color:#fff;
+        font-size:.5rem;font-weight:700;
+        width:14px;height:14px;border-radius:50%;
+        align-items:center;justify-content:center;
+        font-family:var(--mono)">0</span>
+    </a>
+
+    <!-- Paramètres -->
+    <a href="{{ url_for('support.index') }}"
+       class="sb-item {% if active == 'support' %}active{% endif %}">
+      🎧&nbsp;&nbsp;Support
+      {% if current_user.role == 'admin' %}
+      <span class="sb-badge red" id="sb-badge-support" style="display:none">0</span>
+      {% endif %}
+    </a>
+    <a href="{{ url_for('settings.settings') }}"
+       class="rail-icon {% if active == 'settings' %}active{% endif %}">
+      ⚙️
+      <span class="rail-tooltip">Paramètres</span>
+    </a>
+
+    <!-- Avatar utilisateur -->
+    <a href="{{ url_for('support.index') }}"
+       class="sb-item {% if active == 'support' %}active{% endif %}">
+      🎧&nbsp;&nbsp;Support
+      {% if current_user.role == 'admin' %}
+      <span class="sb-badge red" id="sb-badge-support" style="display:none">0</span>
+      {% endif %}
+    </a>
+    <a href="{{ url_for('settings.settings') }}"
+       class="rail-avatar"
+       title="{{ current_user.username if current_user.is_authenticated else '' }}">
+      {{ current_user.username[:2].upper() if current_user.is_authenticated else 'AX' }}
+    </a>
+  </nav>
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <div class="sb-header">
+      <h2>Digital Services CM</h2>
+      <p>Enterprise v3.0.0</p>
+    </div>
+
+    <!-- KPI bénéfice total -->
+    <div class="sb-kpi">
+      <div class="sb-kpi-label">// bénéfice total</div>
+      <div class="sb-kpi-val" id="sb-total-val">—</div>
+      <div class="sb-kpi-sub" id="sb-marge-val">Marge : —</div>
+    </div>
+
+    <!-- Mini stats 2×2 -->
+    <div class="sb-mini-grid">
+      <div class="sb-mini">
+        <div class="sb-mini-label">Aujourd'hui</div>
+        <div class="sb-mini-val text-success" id="sb-jour">—</div>
+      </div>
+      <div class="sb-mini">
+        <div class="sb-mini-label">Ce mois</div>
+        <div class="sb-mini-val text-blue" id="sb-mois">—</div>
+      </div>
+      <div class="sb-mini">
+        <div class="sb-mini-label">Clients</div>
+        <div class="sb-mini-val text-violet" id="sb-clients">—</div>
+      </div>
+      <div class="sb-mini">
+        <div class="sb-mini-label">Transactions</div>
+        <div class="sb-mini-val text-gold" id="sb-txs">—</div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="sb-section">Navigation</div>
+    {% for endpoint, icon, label, key in nav %}
+    <a href="{{ url_for(endpoint) }}"
+       class="sb-item {% if active == key %}active{% endif %}">
+      {{ icon }}&nbsp;&nbsp;{{ label }}
+      {% if key == 'transactions' %}
+        <span class="sb-badge blue" id="sb-badge-tx">—</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+
+    <div class="sb-section">IA & Analyse</div>
+    <a href="{{ url_for('ai.suggestions') }}"
+       class="sb-item {% if active == 'ai_suggestions' %}active{% endif %}"
+       style="{% if not plan_ctx or plan_ctx.is_free %}opacity:.5{% endif %}">
+      💡&nbsp;&nbsp;Suggestions Pro
+      {% if plan_ctx and plan_ctx.is_free %}
+        <span class="sb-badge" style="background:rgba(79,142,247,.15);color:var(--blue)">Pro</span>
+      {% endif %}
+    </a>
+    <a href="{{ url_for('ai.chat') }}"
+       class="sb-item {% if active == 'ai_chat' %}active{% endif %}"
+       style="{% if not plan_ctx or plan_ctx.plan != 'pro_plus' %}opacity:.5{% endif %}">
+      🤖&nbsp;&nbsp;Assistant IA
+      {% if plan_ctx and plan_ctx.plan != 'pro_plus' %}
+        <span class="sb-badge" style="background:rgba(240,192,64,.15);color:var(--gold)">Pro+</span>
+      {% endif %}
+    </a>
+
+    <div class="sb-section">Gestion</div>
+    <!-- Indicateur plan -->
+    <div style="margin:6px 12px 2px;padding:8px 12px;background:var(--card2);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:.62rem;color:var(--muted);font-family:var(--mono)">// plan actuel</div>
+      <div style="font-size:.8rem;font-weight:700;color:{{ plan_ctx.plan_info.color if plan_ctx else 'var(--muted)' }}">
+        {{ plan_ctx.plan_info.icon if plan_ctx else '🆓' }}
+        {{ plan_ctx.plan_info.name if plan_ctx else 'Gratuit' }}
+        {% if plan_ctx and plan_ctx.is_free %}
+        <span style="float:right;font-size:.65rem;color:var(--muted)">{{ plan_ctx.nb_tx }}/{{ plan_ctx.tx_limit }}</span>
+        {% endif %}
+      </div>
+      {% if plan_ctx and plan_ctx.near_limit and plan_ctx.is_free %}
+      <div style="margin-top:4px;height:3px;background:var(--hover);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:{{ plan_ctx.tx_pct }}%;background:var(--warn);border-radius:2px"></div>
+      </div>
+      {% endif %}
+    </div>
+    <a href="{{ url_for('transactions.add') }}" class="sb-item">➕&nbsp;&nbsp;Nouvelle transaction</a>
+    <a href="{{ url_for('transactions.export_excel_route') }}" class="sb-item">📊&nbsp;&nbsp;Export Excel</a>
+    <a href="{{ url_for('transactions.export_csv_route') }}" class="sb-item">📄&nbsp;&nbsp;Export CSV</a>
+    <a href="{{ url_for('billing.pricing') }}"
+       class="sb-item {% if active == 'billing' %}active{% endif %}"
+       style="color:var(--gold)">
+      💎&nbsp;&nbsp;Plans & Tarifs
+    </a>
+    <a href="{{ url_for('settings.alerts') }}"
+       class="sb-item {% if active == 'alerts' %}active{% endif %}">
+      🔔&nbsp;&nbsp;Alertes
+      <span class="sb-badge red" id="sb-badge-alerts">—</span>
+    </a>
+
+    <div class="sb-section">Admin</div>
+    <a href="{{ url_for('support.index') }}"
+       class="sb-item {% if active == 'support' %}active{% endif %}">
+      🎧&nbsp;&nbsp;Support
+      {% if current_user.role == 'admin' %}
+      <span class="sb-badge red" id="sb-badge-support" style="display:none">0</span>
+      {% endif %}
+    </a>
+    <a href="{{ url_for('settings.settings') }}"
+       class="sb-item {% if active == 'settings' %}active{% endif %}">
+      ⚙️&nbsp;&nbsp;Paramètres
+    </a>
+    <a href="{{ url_for('auth.logout') }}" class="sb-item">🚪&nbsp;&nbsp;Déconnexion</a>
+
+    <div class="sb-ver">v3.0.0 — Digital Services CM</div>
+  </aside>
+
+  <!-- ═══ CONTENT ═══ -->
+  <div class="content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-title">
+        <span class="page-icon">{% block page_icon %}📊{% endblock %}</span>
+        {% block page_title %}Dashboard{% endblock %}
+        <span class="page-sub">{% block page_sub %}{% endblock %}</span>
+      </div>
+
+      <!-- Recherche globale -->
+      <div class="topbar-search">
+        <span style="color:var(--muted);font-size:13px">🔍</span>
+        <input type="text" id="global-search"
+               placeholder="Recherche globale... (Entrée)" autocomplete="off">
+      </div>
+
+      {% block topbar_actions %}
+      <a href="{{ url_for('transactions.export_excel_route') }}" class="btn btn-ghost">📥 Exporter</a>
+      {% endblock %}
+
+      <a href="{{ url_for('transactions.add') }}" class="btn btn-primary">➕ Nouvelle transaction</a>
+      <span class="text-mono text-muted text-sm" id="clock"></span>
+    </header>
+
+    <!-- Flash messages -->
+    <div style="padding:0 24px">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat if cat in ['success','info','warning','error'] else 'info' }}">
+        {{ msg }}
+      </div>
+      {% endfor %}
+    {% endwith %}
+    </div>
+
+    <!-- Page content -->
+    <main class="page-scroll">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Status bar -->
+    <footer class="statusbar">
+      <div class="status-dot"></div>
+      <span>DB connectée</span>
+      <div class="status-sep"></div>
+      <span id="status-tx">— transactions</span>
+      <div class="status-sep"></div>
+      <span id="status-msg">Prêt.</span>
+      <span style="margin-left:auto">Digital Services CM — Enterprise v3.0.0</span>
+    </footer>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+
+<!-- ═══ MODAL UPGRADE (limite gratuite) ═══ -->
+<div id="upgrade-modal" style="display:none;position:fixed;inset:0;z-index:1000;
+     background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+     align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--gold);border-radius:18px;
+              padding:0;max-width:460px;width:90%;overflow:hidden;
+              box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(240,192,64,.2)">
+    <div style="height:4px;background:linear-gradient(90deg,var(--gold),var(--orange))"></div>
+    <div style="padding:32px;text-align:center">
+      <div style="font-size:3rem;margin-bottom:12px">🚀</div>
+      <div style="font-size:1.2rem;font-weight:700;color:var(--gold);margin-bottom:8px">
+        Limite du plan Gratuit atteinte
+      </div>
+      <div style="font-size:.85rem;color:var(--muted2);margin-bottom:24px" id="upgrade-msg">
+        Vous avez atteint la limite de 30 transactions.<br>
+        Passez au plan <strong style="color:var(--gold)">Pro</strong> pour continuer.
+      </div>
+
+      <!-- Plans résumé -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+        <div style="background:var(--card2);border:1px solid var(--blue);border-radius:10px;padding:14px">
+          <div style="font-size:1.2rem">💼</div>
+          <div style="font-weight:700;color:var(--blue);margin:4px 0">Pro</div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--text)">2 000 FCFA</div>
+          <div style="font-size:.68rem;color:var(--muted)">par mois</div>
+          <div style="font-size:.72rem;color:var(--success);margin-top:6px">Illimité + Export</div>
+        </div>
+        <div style="background:var(--card2);border:1px solid var(--gold);border-radius:10px;padding:14px">
+          <div style="font-size:1.2rem">🚀</div>
+          <div style="font-weight:700;color:var(--gold);margin:4px 0">Pro+</div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--text)">5 000 FCFA</div>
+          <div style="font-size:.68rem;color:var(--muted)">par mois</div>
+          <div style="font-size:.72rem;color:var(--success);margin-top:6px">Multi-users + API</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a href="/billing/pricing" style="display:block;padding:12px;
+           background:linear-gradient(135deg,var(--gold),#c97800);
+           color:#050300;border-radius:10px;font-weight:700;
+           text-decoration:none;font-size:.92rem">
+          💎 Voir les plans et upgrader →
+        </a>
+        <a href="/billing/checkout/pro?method=demo" style="display:block;padding:10px;
+           background:rgba(14,240,192,.1);border:1px solid rgba(14,240,192,.2);
+           color:var(--teal);border-radius:10px;font-size:.82rem;text-decoration:none">
+          🎮 Essayer Pro gratuitement (démo 30 jours)
+        </a>
+        <button onclick="closeUpgradeModal()"
+                style="padding:8px;background:transparent;border:1px solid var(--border);
+                       color:var(--muted);border-radius:8px;cursor:pointer;font-size:.78rem">
+          Plus tard
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showUpgradeModal(msg) {
+  if (msg) document.getElementById('upgrade-msg').innerHTML = msg;
+  document.getElementById('upgrade-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeUpgradeModal() {
+  document.getElementById('upgrade-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+// Fermer en cliquant dehors
+document.getElementById('upgrade-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeUpgradeModal();
+});
+
+// Vérifier la limite au chargement
+{% if plan_ctx and plan_ctx.at_limit and plan_ctx.is_free %}
+window.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => showUpgradeModal(
+    'Vous avez atteint la limite de <strong style="color:var(--gold)">{{ plan_ctx.tx_limit }} transactions</strong> du plan Gratuit.<br>' +
+    'Passez au plan <strong style="color:var(--gold)">Pro</strong> pour continuer à enregistrer.'
+  ), 800);
+});
+{% elif plan_ctx and plan_ctx.near_limit and plan_ctx.is_free %}
+window.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => showUpgradeModal(
+    '⚡ Il vous reste seulement <strong style="color:var(--warn)">{{ plan_ctx.tx_limit - plan_ctx.nb_tx }} transaction(s)</strong> sur votre plan Gratuit.<br>' +
+    'Upgradez maintenant pour ne pas être bloqué.'
+  ), 1500);
+});
+{% endif %}
+</script>
+
+</body>
+</html>
